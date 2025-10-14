@@ -38,11 +38,11 @@ export const DEFAULT_FORMULAS: Formulas = {
 };
 
 export const DEFAULT_CHURCH_INFO: ChurchInfo = {
-  defaultMinister: '',
-  ministerGrade: '',
-  district: '',
-  department: '',
-  ministerPhone: '',
+  defaultMinister: 'Manuel Salvador Alvarez Romero',
+  ministerGrade: 'O.B',
+  district: '2',
+  department: 'Matagalpa',
+  ministerPhone: '57693382',
 };
 
 export const MONTH_NAMES = [

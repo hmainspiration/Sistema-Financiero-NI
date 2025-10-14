@@ -44,14 +44,14 @@ interface MainAppProps {
 const MainApp: React.FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, handlers, theme, toggleTheme }) => {
   const [activeTab, setActiveTab] = useState<Tab>('register');
   const [isSaving, setIsSaving] = useState(false);
-  const { uploadFile } = useSupabase();
+  const { uploadFile, supabase } = useSupabase();
   
   // Destructure props for easier use
   const { members, categories, weeklyRecords, currentRecord, formulas, monthlyReports, churchInfo } = data;
   const { setMembers, setCategories, setWeeklyRecords, setCurrentRecord, setFormulas, setMonthlyReports, setChurchInfo } = handlers;
 
   const uploadRecordToSupabase = async (record: WeeklyRecord) => {
-    if (!uploadFile) {
+    if (!supabase) {
         console.error("Supabase client not available for upload.");
         return { success: false, error: new Error("Supabase client not initialized.") };
     }
@@ -62,8 +62,31 @@ const MainApp: React.FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, hand
     const dayPadded = record.day.toString().padStart(2, '0');
     const fileName = `${dayPadded}-${monthName}-${yearShort}_${churchName.replace(/ /g, '_')}.xlsx`;
 
+    // Generate detailed report with summary
+    const subtotals: Record<string, number> = {};
+    categories.forEach(cat => { subtotals[cat] = 0; });
+    record.donations.forEach(d => {
+        if (subtotals[d.category] !== undefined) {
+            subtotals[d.category] += d.amount;
+        }
+    });
+    const total = (subtotals['Diezmo'] || 0) + (subtotals['Ordinaria'] || 0);
+    const diezmoDeDiezmo = Math.round(total * (record.formulas.diezmoPercentage / 100));
+    const remanente = total > record.formulas.remanenteThreshold ? Math.round(total - record.formulas.remanenteThreshold) : 0;
+    const gomerMinistro = Math.round(total - diezmoDeDiezmo);
+
+    const summaryData = [
+        ["Resumen Semanal"], [], ["Fecha:", `${record.day}/${record.month}/${record.year}`], ["Ministro:", record.minister], [],
+        ["Concepto", "Monto (C$)"], ...categories.map(cat => [cat, subtotals[cat] || 0]), [],
+        ["Cálculos Finales", ""], ["TOTAL (Diezmo + Ordinaria)", total], [`Diezmo de Diezmo (${record.formulas.diezmoPercentage}%)`, diezmoDeDiezmo],
+        [`Remanente (Umbral C$ ${record.formulas.remanenteThreshold})`, remanente], ["Gomer del Ministro", gomerMinistro]
+    ];
     const donationsData = record.donations.map(d => ({ Miembro: d.memberName, Categoría: d.category, Monto: d.amount }));
+
     const wb = (window as any).XLSX.utils.book_new();
+    const wsSummary = (window as any).XLSX.utils.aoa_to_sheet(summaryData);
+    (window as any).XLSX.utils.book_append_sheet(wb, wsSummary, "Resumen");
+    
     const wsDonations = (window as any).XLSX.utils.json_to_sheet(donationsData);
     (window as any).XLSX.utils.book_append_sheet(wb, wsDonations, "Detalle de Ofrendas");
     
@@ -71,7 +94,7 @@ const MainApp: React.FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, hand
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
     try {
-        await uploadFile('reportes-semanales', fileName, blob);
+        await uploadFile('reportes-semanales', fileName, blob, true);
         return { success: true, fileName };
     } catch (err) {
         const error = err instanceof Error ? err : new Error(String(err));
@@ -139,6 +162,8 @@ const MainApp: React.FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, hand
                     setRecords={setWeeklyRecords}
                     members={members}
                     categories={categories}
+                    formulas={formulas}
+                    churchInfo={churchInfo}
                 />;
       case 'monthly':
         return <ResumenMensualTab records={weeklyRecords} categories={categories} />;

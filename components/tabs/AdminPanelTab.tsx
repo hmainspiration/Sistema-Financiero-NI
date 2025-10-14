@@ -51,51 +51,95 @@ const AdminPanelTab: React.FC<{
 }> = ({
     members, setMembers, categories, setCategories, formulas, setFormulas, churchInfo, setChurchInfo
 }) => {
+    const { addItem, updateItem, deleteItem } = useSupabase();
     const [newMemberName, setNewMemberName] = useState('');
     const [newCategory, setNewCategory] = useState('');
     const [tempFormulas, setTempFormulas] = useState<Formulas>(formulas);
     const [tempChurchInfo, setTempChurchInfo] = useState<ChurchInfo>(churchInfo);
     const [editingMember, setEditingMember] = useState<Member | null>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-    const handleAddMember = () => {
-        if (newMemberName.trim() && !members.some(m => m.name.toLowerCase() === newMemberName.trim().toLowerCase())) {
-            const newMember = { id: `m-${Date.now()}`, name: newMemberName.trim() };
+    const handleAddMember = async () => {
+        if (!newMemberName.trim() || members.some(m => m.name.toLowerCase() === newMemberName.trim().toLowerCase())) {
+            alert('El nombre del miembro no puede estar vacío o ya existe.');
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            const newMember = await addItem('members', { name: newMemberName.trim() });
             setMembers(prev => [...prev, newMember].sort((a,b) => a.name.localeCompare(b.name)));
             setNewMemberName('');
-        } else {
-            alert('El nombre del miembro no puede estar vacío o ya existe.');
+        } catch (error) {
+            alert(`Error al agregar miembro: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     const handleStartEdit = (member: Member) => {
-        setEditingMember(JSON.parse(JSON.stringify(member))); // Create a copy for editing
+        setEditingMember(JSON.parse(JSON.stringify(member)));
     };
 
-    const handleSaveEdit = () => {
+    const handleSaveEdit = async () => {
         if (editingMember) {
-            setMembers(prev => prev.map(m => m.id === editingMember.id ? editingMember : m));
-            setEditingMember(null);
+            setIsSubmitting(true);
+            try {
+                const updatedMember = await updateItem('members', editingMember.id, { name: editingMember.name });
+                setMembers(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
+                setEditingMember(null);
+            } catch (error) {
+                 alert(`Error al guardar cambios: ${error instanceof Error ? error.message : String(error)}`);
+            } finally {
+                 setIsSubmitting(false);
+            }
         }
     };
 
-    const handleDeleteMember = (id: string) => {
+    const handleDeleteMember = async (id: string) => {
         if (window.confirm("¿Seguro que quiere eliminar este miembro?")) {
-            setMembers(prev => prev.filter(m => m.id !== id));
+            try {
+                await deleteItem('members', id);
+                setMembers(prev => prev.filter(m => m.id !== id));
+            } catch (error) {
+                alert(`Error al eliminar miembro: ${error instanceof Error ? error.message : String(error)}`);
+            }
         }
     };
 
-    const handleAddCategory = () => {
-        if (newCategory.trim() && !categories.includes(newCategory.trim())) {
-            setCategories(prev => [...prev, newCategory.trim()].sort());
-            setNewCategory('');
-        } else {
+    const handleAddCategory = async () => {
+        if (!newCategory.trim() || categories.includes(newCategory.trim())) {
             alert('La categoría no puede estar vacía o ya existe.');
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            const newItem = await addItem('categories', { name: newCategory.trim() });
+            setCategories(prev => [...prev, newItem.name].sort());
+            setNewCategory('');
+        } catch (error) {
+            alert(`Error al agregar categoría: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            setIsSubmitting(false);
         }
     };
     
-    const handleDeleteCategory = (catToDelete: string) => {
+    const handleDeleteCategory = async (catToDelete: string) => {
         if (window.confirm("¿Seguro que quiere eliminar esta categoría?")) {
-            setCategories(prev => prev.filter(c => c !== catToDelete));
+            try {
+                // We need to find the category's ID to delete it from the DB
+                // This is a limitation of storing categories as a simple string array in state.
+                // A better approach would be to store them as objects with IDs, like members.
+                // For now, we assume names are unique and can be used to find the item to delete.
+                const categoryToDelete = await (window as any).supabase.from('categories').select('id').eq('name', catToDelete).single();
+                if (categoryToDelete.data) {
+                    await deleteItem('categories', categoryToDelete.data.id);
+                    setCategories(prev => prev.filter(c => c !== catToDelete));
+                } else {
+                    throw new Error("Categoría no encontrada en la base de datos.");
+                }
+            } catch (error) {
+                alert(`Error al eliminar categoría: ${error instanceof Error ? error.message : String(error)}`);
+            }
         }
     };
 
@@ -150,7 +194,7 @@ const AdminPanelTab: React.FC<{
                 <h3 className="text-xl font-bold text-indigo-900 mb-4 dark:text-indigo-300">Gestionar Miembros</h3>
                 <div className="flex gap-2 mb-4">
                     <input type="text" value={newMemberName} onChange={e => setNewMemberName(e.target.value)} placeholder="Nuevo miembro" className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
-                    <button onClick={handleAddMember} className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                    <button onClick={handleAddMember} disabled={isSubmitting} className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400">
                         <UserPlusIcon className="w-5 h-5" />
                     </button>
                 </div>
@@ -167,7 +211,7 @@ const AdminPanelTab: React.FC<{
                                         autoFocus
                                     />
                                     <div className="flex items-center gap-2 ml-2">
-                                        <button onClick={handleSaveEdit} className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300"><CheckIcon className="w-5 h-5"/></button>
+                                        <button onClick={handleSaveEdit} disabled={isSubmitting} className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 disabled:text-gray-400"><CheckIcon className="w-5 h-5"/></button>
                                         <button onClick={() => setEditingMember(null)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"><XMarkIcon className="w-5 h-5"/></button>
                                     </div>
                                 </>
@@ -189,7 +233,7 @@ const AdminPanelTab: React.FC<{
                 <h3 className="text-xl font-bold text-indigo-900 mb-4 dark:text-indigo-300">Gestionar Categorías</h3>
                 <div className="flex gap-2 mb-4">
                     <input type="text" value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="Nueva categoría" className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
-                    <button onClick={handleAddCategory} className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors">
+                    <button onClick={handleAddCategory} disabled={isSubmitting} className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400">
                         <UserPlusIcon className="w-5 h-5" />
                     </button>
                 </div>

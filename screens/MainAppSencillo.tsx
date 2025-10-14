@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { WeeklyRecord, Member, Donation, Formulas, ChurchInfo } from '../types';
 import Header from '../components/layout/Header';
-import { HomeIcon, ChartBarIcon, CalendarDaysIcon, TrashIcon, PlusIcon } from '@heroicons/react/24/outline';
+import { HomeIcon, ChartBarIcon, CalendarDaysIcon, TrashIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { MONTH_NAMES } from '../constants';
 import { useSupabase } from '../context/SupabaseContext';
 
@@ -49,13 +49,18 @@ const SimpleAutocompleteInput: React.FC<AutocompleteInputProps> = ({ members, on
 
 // --- Pestañas de la UI Sencilla ---
 
-const RegistroSencilloTab: React.FC<{record: WeeklyRecord, setRecord: React.Dispatch<React.SetStateAction<WeeklyRecord | null>>, members: Member[], categories: string[], setCategories: React.Dispatch<React.SetStateAction<string[]>>}> = ({ record, setRecord, members, categories, setCategories }) => {
+const RegistroSencilloTab: React.FC<{record: WeeklyRecord, setRecord: React.Dispatch<React.SetStateAction<WeeklyRecord | null>>, members: Member[], setMembers: React.Dispatch<React.SetStateAction<Member[]>>, categories: string[], setCategories: React.Dispatch<React.SetStateAction<string[]>>}> = ({ record, setRecord, members, setMembers, categories, setCategories }) => {
+    const { addItem } = useSupabase();
     const [selectedMember, setSelectedMember] = useState<Member | null>(null);
     const [memberNameInput, setMemberNameInput] = useState('');
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState(categories.find(c => c === "Diezmo") || categories[0]);
-    const [newCategory, setNewCategory] = useState('');
-    const [isAddingCategory, setIsAddingCategory] = useState(false);
+    
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newMemberName, setNewMemberName] = useState('');
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
 
     const handleAddDonation = () => {
         if (!selectedMember || !amount || parseFloat(amount) <= 0) {
@@ -78,44 +83,92 @@ const RegistroSencilloTab: React.FC<{record: WeeklyRecord, setRecord: React.Disp
     const handleRemoveDonation = (donationId: string) => {
         setRecord(prev => prev ? { ...prev, donations: prev.donations.filter(d => d.id !== donationId) } : null);
     };
-
-    const handleAddNewCategory = () => {
-        if (newCategory.trim() && !categories.includes(newCategory.trim())) {
-            const updatedCategories = [...categories, newCategory.trim()].sort();
-            setCategories(updatedCategories);
-            setCategory(newCategory.trim());
+    
+    const handleAddNewMember = async () => {
+        if (!newMemberName.trim() || members.some(m => m.name.toLowerCase() === newMemberName.trim().toLowerCase())) {
+            alert('El nombre del miembro no puede estar vacío o ya existe.');
+            return;
         }
-        setNewCategory('');
-        setIsAddingCategory(false);
+        setIsSubmitting(true);
+        try {
+            const newMember = await addItem('members', { name: newMemberName.trim() });
+            setMembers(prev => [...prev, newMember].sort((a,b) => a.name.localeCompare(b.name)));
+            setNewMemberName('');
+            alert(`Miembro "${newMember.name}" agregado.`);
+        } catch (error) {
+            alert(`Error al agregar miembro: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleAddNewCategory = async () => {
+        if (!newCategoryName.trim() || categories.includes(newCategoryName.trim())) {
+            alert('La categoría no puede estar vacía o ya existe.');
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            const newCategoryItem = await addItem('categories', { name: newCategoryName.trim() });
+            setCategories(prev => [...prev, newCategoryItem.name].sort());
+            setCategory(newCategoryItem.name); // Select the new category by default
+            setNewCategoryName('');
+            alert(`Categoría "${newCategoryItem.name}" agregada.`);
+        } catch (error) {
+            alert(`Error al agregar categoría: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     return (
         <div className="space-y-6">
+             {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative dark:bg-gray-800">
+                        <button onClick={() => setIsAddModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
+                            <XMarkIcon className="w-8 h-8"/>
+                        </button>
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <h3 className="text-xl font-bold text-indigo-900 mb-3 dark:text-indigo-300">Agregar Nuevo Miembro</h3>
+                                <div className="flex gap-2">
+                                    <input type="text" value={newMemberName} onChange={e => setNewMemberName(e.target.value)} placeholder="Nombre completo" className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                                    <button onClick={handleAddNewMember} disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400">Guardar</button>
+                                </div>
+                            </div>
+                            <div className="border-t pt-6 dark:border-gray-700">
+                                <h3 className="text-xl font-bold text-indigo-900 mb-3 dark:text-indigo-300">Agregar Nueva Categoría</h3>
+                                <div className="flex gap-2">
+                                    <input type="text" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="Nombre de categoría" className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                                    <button onClick={handleAddNewCategory} disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400">Guardar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
             <div className="p-6 bg-white rounded-2xl shadow-lg dark:bg-gray-800">
-                <h2 className="text-3xl font-bold text-indigo-900 dark:text-indigo-300">Registrar Ofrenda</h2>
-                <p className="text-gray-500 text-lg dark:text-gray-400">{`Semana del ${record.day} de ${MONTH_NAMES[record.month - 1]}, ${record.year}`}</p>
-                <div className="space-y-4 mt-6">
+                <div className="flex justify-between items-center mb-4">
+                    <div>
+                        <h2 className="text-3xl font-bold text-indigo-900 dark:text-indigo-300">Registrar Ofrenda</h2>
+                        <p className="text-gray-500 text-lg dark:text-gray-400">{`Semana del ${record.day} de ${MONTH_NAMES[record.month - 1]}, ${record.year}`}</p>
+                    </div>
+                     <button onClick={() => setIsAddModalOpen(true)} className="flex-shrink-0 flex items-center justify-center w-12 h-12 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900" title="Agregar Miembro/Categoría">
+                        <PlusIcon className="w-6 h-6"/>
+                    </button>
+                </div>
+
+                <div className="space-y-4">
                     <SimpleAutocompleteInput members={members} onSelect={setSelectedMember} value={memberNameInput} setValue={setMemberNameInput}/>
                     <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Cantidad C$" className="w-full p-4 text-lg bg-white border-2 border-gray-200 rounded-xl dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"/>
-                    <div className="grid grid-cols-2 gap-2">
-                        {categories.slice(0, 4).map(cat => (
-                            <button key={cat} onClick={() => setCategory(cat)} className={`p-3 rounded-lg text-center font-semibold ${category === cat ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200'}`}>{cat}</button>
+                    
+                    <select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-4 text-lg bg-white border-2 border-gray-200 rounded-xl dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
+                        {categories.map(cat => (
+                            <option key={cat} value={cat}>{cat}</option>
                         ))}
-                    </div>
-                    <div className="mt-2">
-                        {!isAddingCategory ? (
-                             <button onClick={() => setIsAddingCategory(true)} className="w-full flex items-center justify-center gap-2 py-3 text-sm font-semibold text-blue-700 bg-blue-100 rounded-xl hover:bg-blue-200 transition-colors dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900">
-                                <PlusIcon className="w-5 h-5" />
-                                <span>Agregar Nueva Categoría</span>
-                            </button>
-                        ) : (
-                            <div className="flex items-center gap-2 p-2 border-t mt-4 dark:border-gray-700">
-                                <input type="text" value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="Nombre" className="flex-grow p-2 text-base bg-gray-100 border border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500"/>
-                                <button onClick={handleAddNewCategory} className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700">Guardar</button>
-                                <button onClick={() => setIsAddingCategory(false)} className="px-2 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500">X</button>
-                            </div>
-                        )}
-                    </div>
+                    </select>
+
                     <button onClick={handleAddDonation} className="w-full flex items-center justify-center gap-2 py-4 font-bold text-white text-lg transition duration-300 bg-blue-600 rounded-xl hover:bg-blue-700 !mt-6">
                         <PlusIcon className="w-6 h-6" /> Agregar Ofrenda
                     </button>
@@ -261,8 +314,8 @@ interface MainAppSencilloProps {
 const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVersion, data, handlers, theme, toggleTheme }) => {
     const [activeTab, setActiveTab] = useState<'register' | 'summary' | 'history'>('register');
     const { members, categories, weeklyRecords, currentRecord, formulas, churchInfo } = data;
-    const { setWeeklyRecords, setCurrentRecord, setCategories } = handlers;
-    const { uploadFile } = useSupabase();
+    const { setMembers, setWeeklyRecords, setCurrentRecord, setCategories } = handlers;
+    const { uploadFile, supabase } = useSupabase();
     const [isSaving, setIsSaving] = useState(false);
     
     const [dateInfo, setDateInfo] = useState({
@@ -270,18 +323,9 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
         month: (new Date().getMonth() + 1).toString(),
         year: new Date().getFullYear().toString(),
     });
-    
-    const activeRecord = useMemo(() => {
-        if (currentRecord) return currentRecord;
-        if (weeklyRecords.length > 0) {
-            const sorted = [...weeklyRecords].sort((a, b) => new Date(b.year, b.month - 1, b.day).getTime() - new Date(a.year, a.month - 1, a.day).getTime());
-            return sorted[0];
-        }
-        return null;
-    }, [currentRecord, weeklyRecords]);
 
     const uploadRecordToSupabase = async (record: WeeklyRecord) => {
-        if (!uploadFile) {
+        if (!supabase) {
             console.error("Supabase client not available for upload.");
             return { success: false, error: new Error("Supabase client not initialized.") };
         }
@@ -292,8 +336,31 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
         const dayPadded = record.day.toString().padStart(2, '0');
         const fileName = `${dayPadded}-${monthName}-${yearShort}_${churchName.replace(/ /g, '_')}.xlsx`;
     
+        // Generate detailed report with summary
+        const subtotals: Record<string, number> = {};
+        categories.forEach(cat => { subtotals[cat] = 0; });
+        record.donations.forEach(d => {
+            if (subtotals[d.category] !== undefined) {
+                subtotals[d.category] += d.amount;
+            }
+        });
+        const total = (subtotals['Diezmo'] || 0) + (subtotals['Ordinaria'] || 0);
+        const diezmoDeDiezmo = Math.round(total * (record.formulas.diezmoPercentage / 100));
+        const remanente = total > record.formulas.remanenteThreshold ? Math.round(total - record.formulas.remanenteThreshold) : 0;
+        const gomerMinistro = Math.round(total - diezmoDeDiezmo);
+
+        const summaryData = [
+            ["Resumen Semanal"], [], ["Fecha:", `${record.day}/${record.month}/${record.year}`], ["Ministro:", record.minister], [],
+            ["Concepto", "Monto (C$)"], ...categories.map(cat => [cat, subtotals[cat] || 0]), [],
+            ["Cálculos Finales", ""], ["TOTAL (Diezmo + Ordinaria)", total], [`Diezmo de Diezmo (${record.formulas.diezmoPercentage}%)`, diezmoDeDiezmo],
+            [`Remanente (Umbral C$ ${record.formulas.remanenteThreshold})`, remanente], ["Gomer del Ministro", gomerMinistro]
+        ];
         const donationsData = record.donations.map(d => ({ Miembro: d.memberName, Categoría: d.category, Monto: d.amount }));
+
         const wb = (window as any).XLSX.utils.book_new();
+        const wsSummary = (window as any).XLSX.utils.aoa_to_sheet(summaryData);
+        (window as any).XLSX.utils.book_append_sheet(wb, wsSummary, "Resumen");
+        
         const wsDonations = (window as any).XLSX.utils.json_to_sheet(donationsData);
         (window as any).XLSX.utils.book_append_sheet(wb, wsDonations, "Detalle de Ofrendas");
         
@@ -301,7 +368,7 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
         const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
     
         try {
-            await uploadFile('reportes-semanales', fileName, blob);
+            await uploadFile('reportes-semanales', fileName, blob, true);
             return { success: true, fileName };
         } catch (err) {
             const error = err instanceof Error ? err : new Error(String(err));
@@ -336,7 +403,7 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
         
         setCurrentRecord(null); 
         setIsSaving(false);
-        setActiveTab('summary');
+        setActiveTab('history');
     };
 
     const startNewRecordFlow = () => {
@@ -372,11 +439,11 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
     ];
 
     const renderContent = () => {
-        if (!activeRecord && activeTab !== 'history') {
+        if (!currentRecord && activeTab !== 'history') {
              return (
                 <div className="p-6 bg-white rounded-2xl shadow-lg h-full flex flex-col justify-center dark:bg-gray-800">
                     <h2 className="text-3xl font-bold text-indigo-900 mb-2 text-center dark:text-indigo-300">Iniciar Nuevo Registro</h2>
-                    <p className="text-gray-500 text-center mb-6 dark:text-gray-400">Seleccione la fecha para la nueva semana.</p>
+                    <p className="text-gray-500 text-center mb-6 dark:text-gray-400">Seleccione la fecha de la semana a registrar.</p>
                     <div className="grid grid-cols-1 gap-4">
                         <div>
                             <label htmlFor="day-s" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Día</label>
@@ -401,8 +468,10 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
         }
 
         switch (activeTab) {
-            case 'register': return <RegistroSencilloTab record={activeRecord!} setRecord={setCurrentRecord} members={members} categories={categories} setCategories={setCategories} />;
-            case 'summary': return <ResumenSencilloTab record={activeRecord!} categories={categories} />;
+            case 'register': return <RegistroSencilloTab record={currentRecord!} setRecord={setCurrentRecord} members={members} setMembers={setMembers} categories={categories} setCategories={setCategories} />;
+            case 'summary': 
+                if (!currentRecord) return <p>Seleccione un registro</p>;
+                return <ResumenSencilloTab record={currentRecord} categories={categories} />;
             case 'history': return <HistorialSencilloTab records={weeklyRecords} onSelectRecord={setCurrentRecord} onStartNew={startNewRecordFlow} setActiveTab={setActiveTab} />;
             default: return null;
         }
@@ -410,7 +479,6 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
     
     return (
         <div className="flex flex-col h-screen">
-            {/* FIX: Corrected component props to match definition. */}
             <Header onLogout={onLogout} onSwitchVersion={onSwitchVersion} showSwitchVersion={true} theme={theme} toggleTheme={toggleTheme}/>
             <main className="flex-grow p-4 pb-24 overflow-y-auto bg-gray-50 dark:bg-gray-900">
                 <div className="max-w-2xl mx-auto h-full">

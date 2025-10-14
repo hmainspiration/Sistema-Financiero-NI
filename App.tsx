@@ -36,11 +36,16 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<Re
 const App: React.FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
     const [appVersion, setAppVersion] = useState<'completo' | 'sencillo' | null>(null);
-    const { error: supabaseError } = useSupabase();
+    const { supabase, error: supabaseError, fetchItems, addItem } = useSupabase();
 
-    // Application State Management
-    const [members, setMembers] = useLocalStorage<Member[]>('app_members', INITIAL_MEMBERS);
-    const [categories, setCategories] = useLocalStorage<string[]>('app_categories', INITIAL_CATEGORIES);
+    // --- State Management ---
+    const [members, setMembers] = useState<Member[]>([]);
+    const [categories, setCategories] = useState<string[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [loadingMessage, setLoadingMessage] = useState("Cargando datos desde la nube...");
+
+
+    // Other states remain in localStorage as they are session/device specific
     const [weeklyRecords, setWeeklyRecords] = useLocalStorage<WeeklyRecord[]>('app_weekly_records', []);
     const [currentRecord, setCurrentRecord] = useState<WeeklyRecord | null>(null);
     const [formulas, setFormulas] = useLocalStorage<Formulas>('app_formulas', DEFAULT_FORMULAS);
@@ -48,6 +53,7 @@ const App: React.FC = () => {
     const [churchInfo, setChurchInfo] = useLocalStorage<ChurchInfo>('app_church_info', DEFAULT_CHURCH_INFO);
     const [theme, setTheme] = useLocalStorage<'light' | 'dark'>('app_theme', 'light');
 
+    // --- Effects ---
     useEffect(() => {
         const loggedIn = sessionStorage.getItem('isLoggedIn') === 'true';
         const version = sessionStorage.getItem('appVersion') as 'completo' | 'sencillo' | null;
@@ -56,8 +62,68 @@ const App: React.FC = () => {
             if (version) {
                 setAppVersion(version);
             }
+        } else {
+            setIsLoading(false);
         }
     }, []);
+
+    useEffect(() => {
+        if (isLoggedIn && supabase) {
+            const loadInitialData = async () => {
+                setIsLoading(true);
+                try {
+                    let fetchedMembers = await fetchItems('members');
+                    let fetchedCategories = await fetchItems('categories');
+
+                    // If database is empty, seed with initial data from constants
+                    if (fetchedMembers.length === 0) {
+                        setLoadingMessage("Configurando su base de datos por primera vez (Miembros)...");
+                        for (const member of INITIAL_MEMBERS) {
+                           await addItem('members', { name: member.name });
+                        }
+                        fetchedMembers = await fetchItems('members'); // Refetch after seeding
+                    }
+                    setMembers(fetchedMembers);
+                    
+                    if (fetchedCategories.length === 0) {
+                        setLoadingMessage("Configurando su base de datos por primera vez (Categorías)...");
+                        for (const categoryName of INITIAL_CATEGORIES) {
+                           await addItem('categories', { name: categoryName });
+                        }
+                         const refetchedCategories = await fetchItems('categories');
+                         fetchedCategories = refetchedCategories;
+                    }
+                    setCategories(fetchedCategories.map((c: any) => c.name));
+                    
+                } catch (error) {
+                    const errorObj = error as any;
+                    let errorMessage = error instanceof Error ? error.message : String(error);
+
+                    if (errorObj?.code === '42P01') {
+                        errorMessage = `Las tablas 'members' o 'categories' no existen en la base de datos. Por favor, siga las instrucciones para crearlas en su panel de Supabase.`;
+                    } else if (errorObj?.code === '42703') {
+                        errorMessage = `Una de las tablas ('members' o 'categories') no tiene la columna 'name'. Verifique la estructura de sus tablas en Supabase.`;
+                    } else if (typeof navigator !== 'undefined' && !navigator.onLine) {
+                        errorMessage = `No hay conexión a internet. No se pueden cargar los datos de la nube.`;
+                    }
+                    
+                    console.error("Failed to fetch initial data from Supabase:", error);
+                    alert(`No se pudo cargar la lista de miembros y categorías desde la nube. Se usarán los datos locales por ahora.\n\nError: ${errorMessage}\n\nVerifique su conexión y la configuración de Supabase.`);
+                    
+                    // Fallback to constants if fetch fails
+                    console.warn("Falling back to initial constant data due to Supabase fetch error.");
+                    setMembers(INITIAL_MEMBERS);
+                    setCategories(INITIAL_CATEGORIES);
+
+                } finally {
+                    setIsLoading(false);
+                    setLoadingMessage("Cargando datos desde la nube...");
+                }
+            };
+            loadInitialData();
+        }
+    }, [isLoggedIn, supabase, fetchItems, addItem]);
+
 
     useEffect(() => {
         if (theme === 'dark') {
@@ -66,7 +132,8 @@ const App: React.FC = () => {
             document.documentElement.classList.remove('dark');
         }
     }, [theme]);
-
+    
+    // --- Handlers ---
     const handleLoginSuccess = () => {
         sessionStorage.setItem('isLoggedIn', 'true');
         setIsLoggedIn(true);
@@ -93,6 +160,7 @@ const App: React.FC = () => {
         setTheme(prev => prev === 'light' ? 'dark' : 'light');
     };
 
+    // --- Render Logic ---
     if (supabaseError) {
         return (
             <div className="flex items-center justify-center min-h-screen bg-red-50 text-red-800 p-4">
@@ -108,17 +176,23 @@ const App: React.FC = () => {
         return <LoginScreen onLoginSuccess={handleLoginSuccess} />;
     }
 
+    if (isLoading) {
+        return (
+             <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900">
+                <div className="w-16 h-16 border-8 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="mt-4 text-lg font-semibold text-gray-700 dark:text-gray-200">{loadingMessage}</p>
+            </div>
+        )
+    }
+
     if (!appVersion) {
-        // FIX: Changed prop from 'onSelectVersion' to 'onSelect' to match component definition.
         return <VersionSelectionScreen onSelect={handleSelectVersion} />;
     }
     
     const appData = { members, categories, weeklyRecords, currentRecord, formulas, monthlyReports, churchInfo };
     const appHandlers = { setMembers, setCategories, setWeeklyRecords, setCurrentRecord, setFormulas, setMonthlyReports, setChurchInfo };
-    const simpleAppHandlers = { setMembers, setCategories, setWeeklyRecords, setCurrentRecord };
 
     if (appVersion === 'completo') {
-        // FIX: Passed all required props to MainApp.
         return <MainApp 
             onLogout={handleLogout} 
             onSwitchVersion={handleSwitchVersion}
@@ -130,12 +204,11 @@ const App: React.FC = () => {
     }
 
     if (appVersion === 'sencillo') {
-        // FIX: Passed all required props to MainAppSencillo.
         return <MainAppSencillo 
             onLogout={handleLogout} 
             onSwitchVersion={handleSwitchVersion}
-            data={{ members, categories, weeklyRecords, currentRecord, formulas, churchInfo }}
-            handlers={simpleAppHandlers}
+            data={appData}
+            handlers={appHandlers}
             theme={theme}
             toggleTheme={toggleTheme}
         />;

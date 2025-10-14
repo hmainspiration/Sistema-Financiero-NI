@@ -2,6 +2,7 @@ import React, { useState, useMemo, FC } from 'react';
 import { WeeklyRecord, Formulas, MonthlyReport, MonthlyReportFormState, ChurchInfo } from '../../types';
 import { MONTH_NAMES, initialMonthlyReportFormState } from '../../constants';
 import { ArrowUpOnSquareIcon, TrashIcon, ArchiveBoxArrowDownIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { useSupabase } from '../../context/SupabaseContext';
 
 
 interface InformeMensualTabProps {
@@ -51,6 +52,7 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
     const [isGenerating, setIsGenerating] = useState(false);
     const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const { uploadFile, supabase } = useSupabase();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
@@ -68,6 +70,7 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
 
         const publicServiceCategories = ["Luz", "Agua"];
         let totalDiezmo = 0, totalOrdinaria = 0, totalServicios = 0, totalGomer = 0, totalDiezmoDeDiezmo = 0;
+        const uniqueMembers = new Set<string>();
 
         filteredRecords.forEach(record => {
             let weeklyDiezmo = 0, weeklyOrdinaria = 0;
@@ -75,6 +78,11 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
                 if (d.category === "Diezmo") weeklyDiezmo += d.amount;
                 if (d.category === "Ordinaria") weeklyOrdinaria += d.amount;
                 if (publicServiceCategories.includes(d.category)) totalServicios += d.amount;
+                
+                // Add member to set for unique count, excluding those with parentheses
+                if (d.memberName && !d.memberName.includes('(')) {
+                    uniqueMembers.add(d.memberName);
+                }
             });
 
             totalDiezmo += weeklyDiezmo;
@@ -98,6 +106,7 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
             'tel-ministro': churchInfo.ministerPhone,
             'mes-reporte': MONTH_NAMES[selectedMonth - 1],
             'ano-reporte': selectedYear.toString(),
+            'miembros-activos': uniqueMembers.size.toString(),
             'ing-diezmos': totalDiezmo > 0 ? totalDiezmo.toFixed(2) : '',
             'ing-ofrendas-ordinarias': totalOrdinaria > 0 ? totalOrdinaria.toFixed(2) : '',
             'ing-servicios-publicos': totalServicios > 0 ? totalServicios.toFixed(2) : '',
@@ -200,155 +209,167 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
         });
     }, [savedReports]);
 
-    const generateAndSavePdf = () => {
+    const generateAndSavePdf = async () => {
         setIsGenerating(true);
-        setTimeout(async () => {
-            try {
-                const { jsPDF } = (window as any).jspdf;
-                const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-                const pageW = doc.internal.pageSize.getWidth();
-                const pageH = doc.internal.pageSize.getHeight();
-                const margin = 10;
-                let startY = margin;
-                const getText = (key: keyof MonthlyReportFormState) => formState[key] || '';
-                const getValue = (key: keyof MonthlyReportFormState) => formatCurrency(getNumericValue(key));
-                doc.setFont('helvetica', 'bold');
-                doc.setFontSize(12);
-                doc.text("IGLESIA DEL DIOS VIVO COLUMNA Y APOYO DE LA VERDAD", pageW / 2, startY + 5, { align: 'center' });
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(11);
-                doc.text("La Luz del Mundo", pageW / 2, startY + 10, { align: 'center' });
-                doc.setFontSize(10);
-                doc.text("MINISTERIO DE ADMINISTRACIÓN FINANCIERA", pageW / 2, startY + 16, { align: 'center' });
-                doc.setFont('helvetica', 'bold');
-                doc.text("INFORMACIÓN FINANCIERA MENSUAL", pageW / 2, startY + 22, { align: 'center' });
-                doc.setFont('helvetica', 'normal');
-                doc.text(`Jurisdicción Nicaragua, C.A.`, pageW / 2, startY + 27, { align: 'center' });
-                startY += 35;
-                const bodyStyle = { fontSize: 8, cellPadding: 1, lineColor: '#000', lineWidth: 0.1 };
-                const headStyle = { fontSize: 8, fontStyle: 'bold', fillColor: '#f0f0f0', textColor: '#333', halign: 'center', lineColor: '#000', lineWidth: 0.1 };
-                const rightAlign = { halign: 'right' };
-                const subheadStyle = { fontStyle: 'bold', fillColor: '#ffffff' };
-                doc.autoTable({
-                    startY: startY,
-                    body: [
-                        [{ content: 'DATOS DE ESTE INFORME', colSpan: 4, styles: headStyle }],
-                        ['DEL MES DE:', getText('mes-reporte'), 'DEL AÑO:', getText('ano-reporte')],
-                        ['CLAVE IGLESIA:', getText('clave-iglesia'), 'NOMBRE IGLESIA:', getText('nombre-iglesia')],
-                        ['DISTRITO:', getText('distrito'), 'DEPARTAMENTO:', getText('departamento')],
-                        ['NOMBRE MINISTRO:', getText('nombre-ministro'), 'GRADO:', getText('grado-ministro')],
-                        ['TELÉFONO:', getText('tel-ministro'), 'MIEMBROS ACTIVOS:', getText('miembros-activos')],
-                    ],
-                    theme: 'grid', styles: { ...bodyStyle, fontSize: 9, cellPadding: 1.5 }, columnStyles: { 0: { fontStyle: 'bold' }, 2: { fontStyle: 'bold' } }
-                });
-                startY = (doc as any).autoTable.previous.finalY + 3;
-                const ingresosData = [
-                    [{ content: 'Ingresos por Ofrendas', styles: subheadStyle }, ''],
-                    ['Diezmos', { content: getValue('ing-diezmos'), styles: rightAlign }],
-                    ['Ofrendas Ordinarias', { content: getValue('ing-ofrendas-ordinarias'), styles: rightAlign }],
-                    ['Primicias', { content: getValue('ing-primicias'), styles: rightAlign }],
-                    ['Ayuda al Encargado', { content: getValue('ing-ayuda-encargado'), styles: rightAlign }],
-                    [{ content: 'Ingresos por Colectas Especiales', styles: subheadStyle }, ''],
-                    ['Ceremonial', { content: getValue('ing-ceremonial'), styles: rightAlign }],
-                    ['Ofrenda Especial SdD NJG', { content: getValue('ing-ofrenda-especial-sdd'), styles: rightAlign }],
-                    ['Evangelización Mundial', { content: getValue('ing-evangelizacion'), styles: rightAlign }],
-                    ['Colecta de Santa Cena', { content: getValue('ing-santa-cena'), styles: rightAlign }],
-                    [{ content: 'Ingresos por Colectas Locales', styles: subheadStyle }, ''],
-                    ['Pago de Servicios Públicos', { content: getValue('ing-servicios-publicos'), styles: rightAlign }],
-                    ['Arreglos Locales', { content: getValue('ing-arreglos-locales'), styles: rightAlign }],
-                    ['Mantenimiento y Conservación', { content: getValue('ing-mantenimiento'), styles: rightAlign }],
-                    ['Construcción Local', { content: getValue('ing-construccion-local'), styles: rightAlign }],
-                    ['Muebles y Artículos', { content: getValue('ing-muebles'), styles: rightAlign }],
-                    ['Viajes y viáticos para Ministro', { content: getValue('ing-viajes-ministro'), styles: rightAlign }],
-                    ['Reuniones Ministeriales', { content: getValue('ing-reuniones-ministeriales'), styles: rightAlign }],
-                    ['Atención a Ministros', { content: getValue('ing-atencion-ministros'), styles: rightAlign }],
-                    ['Viajes fuera del País', { content: getValue('ing-viajes-extranjero'), styles: rightAlign }],
-                    ['Actividades Locales', { content: getValue('ing-actividades-locales'), styles: rightAlign }],
-                    ['Ofrendas para Ciudad LLDM', { content: getValue('ing-ciudad-lldm'), styles: rightAlign }],
-                    ['Adquisición Terreno/Edificio', { content: getValue('ing-adquisicion-terreno'), styles: rightAlign }],
-                ];
-                const egresosData = [
-                    [{ content: 'Manutención del Ministro', styles: subheadStyle }, ''],
-                    ['Asignación Autorizada', { content: getValue('egr-asignacion'), styles: rightAlign }],
-                    ['Gomer del Mes', { content: getValue('egr-gomer'), styles: rightAlign }],
-                    [{ content: 'Total Manutención (Asignación - Gomer)', styles: { fontStyle: 'bold' } }, { content: formatCurrency(calculations.totalManutencion), styles: { ...rightAlign, fontStyle: 'bold' } }],
-                    [{ content: 'Egresos por Colectas Especiales', styles: subheadStyle }, ''],
-                    ['Ceremonial', { content: getValue('egr-ceremonial'), styles: rightAlign }],
-                    ['Ofrenda Especial SdD NJG', { content: getValue('egr-ofrenda-especial-sdd'), styles: rightAlign }],
-                    ['Evangelización Mundial', { content: getValue('egr-evangelizacion'), styles: rightAlign }],
-                    ['Colecta de Santa Cena', { content: getValue('egr-santa-cena'), styles: rightAlign }],
-                    [{ content: 'Egresos por Colectas Locales', styles: subheadStyle }, ''],
-                    ['Pago de Servicios Públicos', { content: getValue('egr-servicios-publicos'), styles: rightAlign }],
-                    ['Arreglos Locales', { content: getValue('egr-arreglos-locales'), styles: rightAlign }],
-                    ['Mantenimiento y Conservación', { content: getValue('egr-mantenimiento'), styles: rightAlign }],
-                    ['Traspaso para Construcción Local', { content: getValue('egr-traspaso-construccion'), styles: rightAlign }],
-                    ['Muebles y Artículos', { content: getValue('egr-muebles'), styles: rightAlign }],
-                    ['Viajes y viáticos para Ministro', { content: getValue('egr-viajes-ministro'), styles: rightAlign }],
-                    ['Reuniones Ministeriales', { content: getValue('egr-reuniones-ministeriales'), styles: rightAlign }],
-                    ['Atención a Ministros', { content: getValue('egr-atencion-ministros'), styles: rightAlign }],
-                    ['Viajes fuera del País', { content: getValue('egr-viajes-extranjero'), styles: rightAlign }],
-                    ['Actividades Locales', { content: getValue('egr-actividades-locales'), styles: rightAlign }],
-                    ['Ofrendas para Ciudad LLDM', { content: getValue('egr-ciudad-lldm'), styles: rightAlign }],
-                    ['Adquisición Terreno/Edificio', { content: getValue('egr-adquisicion-terreno'), styles: rightAlign }],
-                ];
-                const tableConfig = { theme: 'grid', styles: bodyStyle, headStyles: headStyle };
-                const tableStartY = startY;
-                let finalYIngresos, finalYEgresos;
-                doc.autoTable({ head: [['ENTRADAS (INGRESOS)', '']], body: ingresosData, startY: tableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: margin }, });
-                finalYIngresos = (doc as any).autoTable.previous.finalY;
-                doc.autoTable({ head: [['SALIDAS (EGRESOS)', '']], body: egresosData, startY: tableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: pageW / 2 + 1 }, });
-                finalYEgresos = (doc as any).autoTable.previous.finalY;
-                startY = Math.max(finalYIngresos, finalYEgresos) + 3;
-                const resumenData = [
-                    ['Saldo Inicial del Mes', { content: formatCurrency(calculations.saldoAnterior), styles: rightAlign }],
-                    ['Total Ingresos del Mes', { content: formatCurrency(calculations.totalIngresos), styles: rightAlign }],
-                    [{ content: 'Total Disponible del Mes', styles: { fontStyle: 'bold' } }, { content: formatCurrency(calculations.totalDisponible), styles: { ...rightAlign, fontStyle: 'bold' } }],
-                    ['Total Salidas del Mes', { content: formatCurrency(calculations.totalSalidas), styles: rightAlign }],
-                    [{ content: 'Utilidad o Remanente', styles: { fontStyle: 'bold', fillColor: '#e0e7ff' } }, { content: formatCurrency(calculations.remanente), styles: { ...rightAlign, fontStyle: 'bold', fillColor: '#e0e7ff' } }],
-                ];
-                const distribucionData = [
-                    ['Dirección General (Diezmos de Diezmos)', { content: getValue('dist-direccion'), styles: rightAlign }],
-                    ['Tesorería (Cuenta de Remanentes)', { content: getValue('dist-tesoreria'), styles: rightAlign }],
-                    ['Pro-Construcción', { content: getValue('dist-pro-construccion'), styles: rightAlign }],
-                    ['Otros', { content: getValue('dist-otros'), styles: rightAlign }],
-                ];
-                if (startY > pageH - 65) { doc.addPage(); startY = margin; }
-                const summaryTableStartY = startY;
-                let finalYResumen, finalYDistribucion;
-                doc.autoTable({ head: [['RESUMEN Y CIERRE', '']], body: resumenData, startY: summaryTableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: margin }, });
-                finalYResumen = (doc as any).autoTable.previous.finalY;
-                doc.autoTable({ head: [['SALDO DEL REMANENTE DISTRIBUIDO A:', '']], body: distribucionData, startY: summaryTableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: pageW / 2 + 1 }, });
-                finalYDistribucion = (doc as any).autoTable.previous.finalY;
-                startY = Math.max(finalYResumen, finalYDistribucion) + 10;
-                if (startY > pageH - 55) { doc.addPage(); startY = margin; }
-                doc.autoTable({
-                    startY,
-                    body: [
-                        [{ content: 'Comisión Local de Finanzas:', colSpan: 3, styles: { fontStyle: 'bold', halign: 'center' } }],
-                        ['\n\n_________________________', '\n\n_________________________', '\n\n_________________________'],
-                        [getText('comision-nombre-1') || 'Firma 1', getText('comision-nombre-2') || 'Firma 2', getText('comision-nombre-3') || 'Firma 3'],
-                        [{ content: '', colSpan: 3, styles: { cellPadding: 4 } }],
-                        ['\n\n_________________________', '\n\n_________________________', ''],
-                        [`Firma Ministro: ${getText('nombre-ministro')}`, `Firma Tesorero(a) Local`, ''],
-                    ],
-                    theme: 'plain', styles: { fontSize: 9, halign: 'center' }
-                });
-                
-                const mes = getText('mes-reporte') || 'Mes';
-                const anio = getText('ano-reporte') || 'Año';
-                const iglesia = getText('nombre-iglesia') || 'Iglesia';
-                const pdfFileName = `${mes}-${anio}-${iglesia}.pdf`;
+        try {
+            const { jsPDF } = (window as any).jspdf;
+            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+            // ... (PDF generation logic remains the same)
+            const pageW = doc.internal.pageSize.getWidth();
+            const pageH = doc.internal.pageSize.getHeight();
+            const margin = 10;
+            let startY = margin;
+            const getText = (key: keyof MonthlyReportFormState) => formState[key] || '';
+            const getValue = (key: keyof MonthlyReportFormState) => formatCurrency(getNumericValue(key));
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(12);
+            doc.text("IGLESIA DEL DIOS VIVO COLUMNA Y APOYO DE LA VERDAD", pageW / 2, startY + 5, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(11);
+            doc.text("La Luz del Mundo", pageW / 2, startY + 10, { align: 'center' });
+            doc.setFontSize(10);
+            doc.text("MINISTERIO DE ADMINISTRACIÓN FINANCIERA", pageW / 2, startY + 16, { align: 'center' });
+            doc.setFont('helvetica', 'bold');
+            doc.text("INFORMACIÓN FINANCIERA MENSUAL", pageW / 2, startY + 22, { align: 'center' });
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Jurisdicción Nicaragua, C.A.`, pageW / 2, startY + 27, { align: 'center' });
+            startY += 35;
+            const bodyStyle = { fontSize: 8, cellPadding: 1, lineColor: '#000', lineWidth: 0.1 };
+            const headStyle = { fontSize: 8, fontStyle: 'bold', fillColor: '#f0f0f0', textColor: '#333', halign: 'center', lineColor: '#000', lineWidth: 0.1 };
+            const rightAlign = { halign: 'right' };
+            const subheadStyle = { fontStyle: 'bold', fillColor: '#ffffff' };
+            doc.autoTable({
+                startY: startY,
+                body: [
+                    [{ content: 'DATOS DE ESTE INFORME', colSpan: 4, styles: headStyle }],
+                    ['DEL MES DE:', getText('mes-reporte'), 'DEL AÑO:', getText('ano-reporte')],
+                    ['CLAVE IGLESIA:', getText('clave-iglesia'), 'NOMBRE IGLESIA:', getText('nombre-iglesia')],
+                    ['DISTRITO:', getText('distrito'), 'DEPARTAMENTO:', getText('departamento')],
+                    ['NOMBRE MINISTRO:', getText('nombre-ministro'), 'GRADO:', getText('grado-ministro')],
+                    ['TELÉFONO:', getText('tel-ministro'), 'MIEMBROS ACTIVOS:', getText('miembros-activos')],
+                ],
+                theme: 'grid', styles: { ...bodyStyle, fontSize: 9, cellPadding: 1.5 }, columnStyles: { 0: { fontStyle: 'bold' }, 2: { fontStyle: 'bold' } }
+            });
+            startY = (doc as any).autoTable.previous.finalY + 3;
+            const ingresosData = [
+                [{ content: 'Ingresos por Ofrendas', styles: subheadStyle }, ''],
+                ['Diezmos', { content: getValue('ing-diezmos'), styles: rightAlign }],
+                ['Ofrendas Ordinarias', { content: getValue('ing-ofrendas-ordinarias'), styles: rightAlign }],
+                ['Primicias', { content: getValue('ing-primicias'), styles: rightAlign }],
+                ['Ayuda al Encargado', { content: getValue('ing-ayuda-encargado'), styles: rightAlign }],
+                [{ content: 'Ingresos por Colectas Especiales', styles: subheadStyle }, ''],
+                ['Ceremonial', { content: getValue('ing-ceremonial'), styles: rightAlign }],
+                ['Ofrenda Especial SdD NJG', { content: getValue('ing-ofrenda-especial-sdd'), styles: rightAlign }],
+                ['Evangelización Mundial', { content: getValue('ing-evangelizacion'), styles: rightAlign }],
+                ['Colecta de Santa Cena', { content: getValue('ing-santa-cena'), styles: rightAlign }],
+                [{ content: 'Ingresos por Colectas Locales', styles: subheadStyle }, ''],
+                ['Pago de Servicios Públicos', { content: getValue('ing-servicios-publicos'), styles: rightAlign }],
+                ['Arreglos Locales', { content: getValue('ing-arreglos-locales'), styles: rightAlign }],
+                ['Mantenimiento y Conservación', { content: getValue('ing-mantenimiento'), styles: rightAlign }],
+                ['Construcción Local', { content: getValue('ing-construccion-local'), styles: rightAlign }],
+                ['Muebles y Artículos', { content: getValue('ing-muebles'), styles: rightAlign }],
+                ['Viajes y viáticos para Ministro', { content: getValue('ing-viajes-ministro'), styles: rightAlign }],
+                ['Reuniones Ministeriales', { content: getValue('ing-reuniones-ministeriales'), styles: rightAlign }],
+                ['Atención a Ministros', { content: getValue('ing-atencion-ministros'), styles: rightAlign }],
+                ['Viajes fuera del País', { content: getValue('ing-viajes-extranjero'), styles: rightAlign }],
+                ['Actividades Locales', { content: getValue('ing-actividades-locales'), styles: rightAlign }],
+                ['Ofrendas para Ciudad LLDM', { content: getValue('ing-ciudad-lldm'), styles: rightAlign }],
+                ['Adquisición Terreno/Edificio', { content: getValue('ing-adquisicion-terreno'), styles: rightAlign }],
+            ];
+            const egresosData = [
+                [{ content: 'Manutención del Ministro', styles: subheadStyle }, ''],
+                ['Asignación Autorizada', { content: getValue('egr-asignacion'), styles: rightAlign }],
+                ['Gomer del Mes', { content: getValue('egr-gomer'), styles: rightAlign }],
+                [{ content: 'Total Manutención (Asignación - Gomer)', styles: { fontStyle: 'bold' } }, { content: formatCurrency(calculations.totalManutencion), styles: { ...rightAlign, fontStyle: 'bold' } }],
+                [{ content: 'Egresos por Colectas Especiales', styles: subheadStyle }, ''],
+                ['Ceremonial', { content: getValue('egr-ceremonial'), styles: rightAlign }],
+                ['Ofrenda Especial SdD NJG', { content: getValue('egr-ofrenda-especial-sdd'), styles: rightAlign }],
+                ['Evangelización Mundial', { content: getValue('egr-evangelizacion'), styles: rightAlign }],
+                ['Colecta de Santa Cena', { content: getValue('egr-santa-cena'), styles: rightAlign }],
+                [{ content: 'Egresos por Colectas Locales', styles: subheadStyle }, ''],
+                ['Pago de Servicios Públicos', { content: getValue('egr-servicios-publicos'), styles: rightAlign }],
+                ['Arreglos Locales', { content: getValue('egr-arreglos-locales'), styles: rightAlign }],
+                ['Mantenimiento y Conservación', { content: getValue('egr-mantenimiento'), styles: rightAlign }],
+                ['Traspaso para Construcción Local', { content: getValue('egr-traspaso-construccion'), styles: rightAlign }],
+                ['Muebles y Artículos', { content: getValue('egr-muebles'), styles: rightAlign }],
+                ['Viajes y viáticos para Ministro', { content: getValue('egr-viajes-ministro'), styles: rightAlign }],
+                ['Reuniones Ministeriales', { content: getValue('egr-reuniones-ministeriales'), styles: rightAlign }],
+                ['Atención a Ministros', { content: getValue('egr-atencion-ministros'), styles: rightAlign }],
+                ['Viajes fuera del País', { content: getValue('egr-viajes-extranjero'), styles: rightAlign }],
+                ['Actividades Locales', { content: getValue('egr-actividades-locales'), styles: rightAlign }],
+                ['Ofrendas para Ciudad LLDM', { content: getValue('egr-ciudad-lldm'), styles: rightAlign }],
+                ['Adquisición Terreno/Edificio', { content: getValue('egr-adquisicion-terreno'), styles: rightAlign }],
+            ];
+            const tableConfig = { theme: 'grid', styles: bodyStyle, headStyles: headStyle };
+            const tableStartY = startY;
+            let finalYIngresos, finalYEgresos;
+            doc.autoTable({ head: [['ENTRADAS (INGRESOS)', '']], body: ingresosData, startY: tableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: margin }, });
+            finalYIngresos = (doc as any).autoTable.previous.finalY;
+            doc.autoTable({ head: [['SALIDAS (EGRESOS)', '']], body: egresosData, startY: tableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: pageW / 2 + 1 }, });
+            finalYEgresos = (doc as any).autoTable.previous.finalY;
+            startY = Math.max(finalYIngresos, finalYEgresos) + 3;
+            const resumenData = [
+                ['Saldo Inicial del Mes', { content: formatCurrency(calculations.saldoAnterior), styles: rightAlign }],
+                ['Total Ingresos del Mes', { content: formatCurrency(calculations.totalIngresos), styles: rightAlign }],
+                [{ content: 'Total Disponible del Mes', styles: { fontStyle: 'bold' } }, { content: formatCurrency(calculations.totalDisponible), styles: { ...rightAlign, fontStyle: 'bold' } }],
+                ['Total Salidas del Mes', { content: formatCurrency(calculations.totalSalidas), styles: rightAlign }],
+                [{ content: 'Utilidad o Remanente', styles: { fontStyle: 'bold', fillColor: '#e0e7ff' } }, { content: formatCurrency(calculations.remanente), styles: { ...rightAlign, fontStyle: 'bold', fillColor: '#e0e7ff' } }],
+            ];
+            const distribucionData = [
+                ['Dirección General (Diezmos de Diezmos)', { content: getValue('dist-direccion'), styles: rightAlign }],
+                ['Tesorería (Cuenta de Remanentes)', { content: getValue('dist-tesoreria'), styles: rightAlign }],
+                ['Pro-Construcción', { content: getValue('dist-pro-construccion'), styles: rightAlign }],
+                ['Otros', { content: getValue('dist-otros'), styles: rightAlign }],
+            ];
+            if (startY > pageH - 65) { doc.addPage(); startY = margin; }
+            const summaryTableStartY = startY;
+            let finalYResumen, finalYDistribucion;
+            doc.autoTable({ head: [['RESUMEN Y CIERRE', '']], body: resumenData, startY: summaryTableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: margin }, });
+            finalYResumen = (doc as any).autoTable.previous.finalY;
+            doc.autoTable({ head: [['SALDO DEL REMANENTE DISTRIBUIDO A:', '']], body: distribucionData, startY: summaryTableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: pageW / 2 + 1 }, });
+            finalYDistribucion = (doc as any).autoTable.previous.finalY;
+            startY = Math.max(finalYResumen, finalYDistribucion) + 10;
+            if (startY > pageH - 55) { doc.addPage(); startY = margin; }
+            doc.autoTable({
+                startY,
+                body: [
+                    [{ content: 'Comisión Local de Finanzas:', colSpan: 3, styles: { fontStyle: 'bold', halign: 'center' } }],
+                    ['\n\n_________________________', '\n\n_________________________', '\n\n_________________________'],
+                    [getText('comision-nombre-1') || 'Firma 1', getText('comision-nombre-2') || 'Firma 2', getText('comision-nombre-3') || 'Firma 3'],
+                    [{ content: '', colSpan: 3, styles: { cellPadding: 4 } }],
+                    ['\n\n_________________________', '\n\n_________________________', ''],
+                    [`Firma Ministro: ${getText('nombre-ministro')}`, `Firma Tesorero(a) Local`, ''],
+                ],
+                theme: 'plain', styles: { fontSize: 9, halign: 'center' }
+            });
+            
+            const mes = getText('mes-reporte') || 'Mes';
+            const anio = getText('ano-reporte') || 'Año';
+            const iglesia = getText('nombre-iglesia') || 'Iglesia';
+            const pdfFileName = `Informe-Mensual_${mes}-${anio}_${iglesia.replace(/ /g, '_')}.pdf`;
 
-                doc.save(pdfFileName);
-                alert(`Informe mensual "${pdfFileName}" generado y descargado localmente.`);
+            // Download PDF locally
+            doc.save(pdfFileName);
 
-            } catch (error) {
-                console.error("Error generating PDF:", error);
-                alert(`Hubo un error al generar el PDF: ${error instanceof Error ? error.message : String(error)}`);
-            } finally {
-                setIsGenerating(false);
+            // Upload to Supabase
+            if (!supabase) {
+                alert(`Informe "${pdfFileName}" generado y descargado. La conexión a la nube no está activa para guardarlo automáticamente.`);
+            } else {
+                 const pdfBlob = doc.output('blob');
+                 await uploadFile('reportes-mensuales', pdfFileName, pdfBlob, true);
+                 alert(`Informe "${pdfFileName}" generado, descargado y guardado en la nube exitosamente.`);
             }
-        }, 100);
+
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+             if (errorMessage.toLowerCase().includes('bucket not found')) {
+                alert(`Error al subir a la nube: El "bucket" (contenedor) 'reportes-mensuales' no fue encontrado.\n\nPor favor, vaya a su panel de Supabase -> Storage y cree un nuevo bucket PÚBLICO con ese nombre exacto.\n\nEl PDF se guardó localmente.`);
+            } else {
+                alert(`Hubo un error al generar o subir el PDF: ${errorMessage}`);
+            }
+        } finally {
+            setIsGenerating(false);
+        }
     };
     
     // Helper components for building the form
@@ -416,7 +437,7 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
                         Cargar Datos del Mes
                     </button>
                 </div>
-                 <p className="text-xs text-gray-500 mt-2 dark:text-gray-400">Nota: Esto llenará automáticamente los campos del informe con los datos de las semanas registradas para el mes seleccionado. Los campos como "Primicias" o "Colectas Especiales" deben llenarse manualmente.</p>
+                 <p className="text-xs text-gray-500 mt-2 dark:text-gray-400">Nota: Esto llenará automáticamente los campos del informe con los datos de las semanas registradas para el mes seleccionado. Los campos como "Primicias" o "Colectas Especiales" deben llenarse manually.</p>
             </div>
 
             <form id="financial-form" className="space-y-4">
@@ -490,7 +511,7 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
                         <Field id="egr-atencion-ministros" label="Atención a Ministros" />
                         <Field id="egr-viajes-extranjero" label="Viajes fuera del País" />
                         <Field id="egr-actividades-locales" label="Actividades Locales" />
-                        <Field id="egr-ciudad-lldm" label="Ofrendas para Ciudad LLDM" />
+                        <Field id="ing-ciudad-lldm" label="Ofrendas para Ciudad LLDM" />
                         <Field id="egr-adquisicion-terreno" label="Adquisición Terreno/Edificio" />
                     </div>
                 </Accordion>

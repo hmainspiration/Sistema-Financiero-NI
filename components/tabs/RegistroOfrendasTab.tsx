@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { WeeklyRecord, Member, Donation, Formulas, ChurchInfo } from '../../types';
 import { MONTH_NAMES } from '../../constants';
-import { TrashIcon, PlusIcon, CalendarIcon } from '@heroicons/react/24/outline';
+import { TrashIcon, PlusIcon, CalendarIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { useSupabase } from '../../context/SupabaseContext';
 
 // Autocomplete component, similar to the one in SemanasRegistradasTab
 const AutocompleteInput: React.FC<{ members: Member[], onSelect: (member: Member) => void }> = ({ members, onSelect }) => {
@@ -60,6 +61,7 @@ interface RegistroOfrendasTabProps {
 const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
   currentRecord, setCurrentRecord, members, setMembers, categories, setCategories, onSaveRecord, onStartNew, defaultFormulas, churchInfo
 }) => {
+    const { addItem } = useSupabase();
     // State for creating a new record
     const [dateInfo, setDateInfo] = useState({
         day: new Date().getDate().toString(),
@@ -71,6 +73,12 @@ const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
     const [selectedMember, setSelectedMember] = useState<Member | null>(null);
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState(categories.find(c => c === "Diezmo") || categories[0]);
+
+    // State for modal
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [newMemberName, setNewMemberName] = useState('');
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleCreateRecord = () => {
         const newRecord: WeeklyRecord = {
@@ -111,6 +119,43 @@ const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
         }
     };
     
+    const handleAddNewMember = async () => {
+        if (!newMemberName.trim() || members.some(m => m.name.toLowerCase() === newMemberName.trim().toLowerCase())) {
+            alert('El nombre del miembro no puede estar vacío o ya existe.');
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            const newMember = await addItem('members', { name: newMemberName.trim() });
+            setMembers(prev => [...prev, newMember].sort((a,b) => a.name.localeCompare(b.name)));
+            setNewMemberName('');
+            alert(`Miembro "${newMember.name}" agregado.`);
+        } catch (error) {
+            alert(`Error al agregar miembro: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleAddNewCategory = async () => {
+        if (!newCategoryName.trim() || categories.includes(newCategoryName.trim())) {
+             alert('La categoría no puede estar vacía o ya existe.');
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            const newCategoryItem = await addItem('categories', { name: newCategoryName.trim() });
+            setCategories(prev => [...prev, newCategoryItem.name].sort());
+            setCategory(newCategoryItem.name);
+            setNewCategoryName('');
+            alert(`Categoría "${newCategoryItem.name}" agregada.`);
+        } catch (error) {
+            alert(`Error al agregar categoría: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     if (!currentRecord) {
         return (
             <div className="p-6 bg-white rounded-xl shadow-lg h-full flex flex-col justify-center dark:bg-gray-800">
@@ -144,10 +189,43 @@ const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
 
     return (
         <div className="space-y-6">
+            {isAddModalOpen && (
+                <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-center p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative dark:bg-gray-800">
+                        <button onClick={() => setIsAddModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
+                            <XMarkIcon className="w-8 h-8"/>
+                        </button>
+                        <div className="p-6 space-y-6">
+                            <div>
+                                <h3 className="text-xl font-bold text-indigo-900 mb-3 dark:text-indigo-300">Agregar Nuevo Miembro</h3>
+                                <div className="flex gap-2">
+                                    <input type="text" value={newMemberName} onChange={e => setNewMemberName(e.target.value)} placeholder="Nombre completo" className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                                    <button onClick={handleAddNewMember} disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400">Guardar</button>
+                                </div>
+                            </div>
+                            <div className="border-t pt-6 dark:border-gray-700">
+                                <h3 className="text-xl font-bold text-indigo-900 mb-3 dark:text-indigo-300">Agregar Nueva Categoría</h3>
+                                <div className="flex gap-2">
+                                    <input type="text" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="Nombre de categoría" className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                                    <button onClick={handleAddNewCategory} disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400">Guardar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="p-6 bg-white rounded-xl shadow-lg dark:bg-gray-800">
-                <h2 className="text-2xl font-bold text-indigo-900 dark:text-indigo-300">Registro de Ofrendas</h2>
-                <p className="text-gray-500 dark:text-gray-400">{`Semana del ${currentRecord.day} de ${MONTH_NAMES[currentRecord.month - 1]}, ${currentRecord.year}`}</p>
-                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                <div className="flex justify-between items-start mb-4">
+                    <div>
+                        <h2 className="text-2xl font-bold text-indigo-900 dark:text-indigo-300">Registro de Ofrendas</h2>
+                        <p className="text-gray-500 dark:text-gray-400">{`Semana del ${currentRecord.day} de ${MONTH_NAMES[currentRecord.month - 1]}, ${currentRecord.year}`}</p>
+                    </div>
+                    <button onClick={() => setIsAddModalOpen(true)} className="flex-shrink-0 flex items-center justify-center w-12 h-12 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900" title="Agregar Miembro/Categoría">
+                        <PlusIcon className="w-6 h-6"/>
+                    </button>
+                </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
                     <AutocompleteInput members={members} onSelect={setSelectedMember} />
                     <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Cantidad C$" className="w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600"/>
                     <select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600">

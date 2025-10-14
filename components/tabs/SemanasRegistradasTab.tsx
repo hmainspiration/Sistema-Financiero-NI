@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { WeeklyRecord, Member, Donation } from '../../types';
-import { PencilIcon, TrashIcon, XMarkIcon, PlusIcon, ArrowDownTrayIcon, CloudArrowUpIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { WeeklyRecord, Member, Donation, Formulas, ChurchInfo } from '../../types';
+import { PencilIcon, TrashIcon, XMarkIcon, PlusIcon, CloudArrowUpIcon, DocumentArrowDownIcon, ArrowDownOnSquareStackIcon } from '@heroicons/react/24/outline';
 import { MONTH_NAMES } from '../../constants';
 import { useSupabase } from '../../context/SupabaseContext';
 
@@ -64,11 +64,21 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ members, onSelect
 };
 
 
-const UploadedReportsList: React.FC = () => {
+const UploadedReportsList: React.FC<{
+    records: WeeklyRecord[];
+    setRecords: React.Dispatch<React.SetStateAction<WeeklyRecord[]>>;
+    formulas: Formulas;
+    churchInfo: ChurchInfo;
+}> = ({ records, setRecords, formulas, churchInfo }) => {
     const [files, setFiles] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const { supabase, listFiles, getPublicUrl } = useSupabase();
+    const [isLoadingToApp, setIsLoadingToApp] = useState<string | null>(null);
+
+    const monthNameToNumber = useMemo(() => 
+        Object.fromEntries(MONTH_NAMES.map((name, i) => [name.toLowerCase(), i + 1]))
+    , []);
 
     useEffect(() => {
         if (!supabase) return;
@@ -88,6 +98,67 @@ const UploadedReportsList: React.FC = () => {
         };
         fetchFiles();
     }, [supabase, listFiles]);
+    
+    const handleLoadToApp = async (file: any) => {
+        setIsLoadingToApp(file.id);
+        try {
+            // 1. Parse filename to get date
+            const nameParts = file.name.split('_')[0].split('-');
+            if (nameParts.length < 3) throw new Error("Nombre de archivo no válido para extraer fecha.");
+            
+            const day = parseInt(nameParts[0]);
+            const monthName = nameParts[1].toLowerCase();
+            const year = 2000 + parseInt(nameParts[2]);
+            const month = monthNameToNumber[monthName];
+
+            if (!day || !month || !year) throw new Error("No se pudo extraer una fecha válida del nombre del archivo.");
+            
+            // 2. Fetch and parse Excel file
+            const url = getPublicUrl('reportes-semanales', file.name);
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("No se pudo descargar el archivo.");
+            const arrayBuffer = await response.arrayBuffer();
+            const wb = (window as any).XLSX.read(arrayBuffer, { type: 'buffer' });
+            const ws = wb.Sheets['Detalle de Ofrendas'];
+            if (!ws) throw new Error("La hoja 'Detalle de Ofrendas' no se encontró en el archivo.");
+            const donationsJson = (window as any).XLSX.utils.sheet_to_json(ws);
+            
+            const donations: Donation[] = donationsJson.map((d: any, index: number) => ({
+                id: `d-${Date.now()}-${index}`,
+                memberId: `m-cloud-${Date.now()}-${index}`,
+                memberName: d['Miembro'],
+                category: d['Categoría'],
+                amount: d['Monto'],
+            }));
+
+            // 3. Create a new WeeklyRecord object
+            const newRecord: WeeklyRecord = {
+                id: `wr-cloud-${Date.now()}`,
+                day, month, year,
+                minister: churchInfo.defaultMinister,
+                donations,
+                formulas: formulas,
+            };
+
+            // 4. Check for duplicates and update state
+            const existingRecord = records.find(r => r.day === day && r.month === month && r.year === year);
+            if (existingRecord) {
+                if (window.confirm(`Ya existe un registro local para el ${day}/${month}/${year}. ¿Desea sobrescribirlo con los datos de la nube?`)) {
+                    setRecords(prev => prev.map(r => r.id === existingRecord.id ? { ...newRecord, id: existingRecord.id } : r));
+                    alert("Registro local actualizado con éxito desde la nube.");
+                }
+            } else {
+                setRecords(prev => [...prev, newRecord]);
+                alert("Registro cargado desde la nube y añadido a la lista local.");
+            }
+
+        } catch (e) {
+            alert(`Error al cargar la semana en la app: ${e instanceof Error ? e.message : String(e)}`);
+        } finally {
+            setIsLoadingToApp(null);
+        }
+    };
+
 
     if (loading) {
         return <div className="p-4 text-center text-gray-500 dark:text-gray-400">Cargando reportes de la nube...</div>;
@@ -108,15 +179,28 @@ const UploadedReportsList: React.FC = () => {
                                 <p className="font-medium text-gray-800 dark:text-gray-200">{file.name}</p>
                                 <p className="text-xs text-gray-500 dark:text-gray-400">Subido: {new Date(file.created_at).toLocaleString()}</p>
                            </div>
-                           <a 
-                             href={getPublicUrl('reportes-semanales', file.name)}
-                             target="_blank"
-                             rel="noopener noreferrer"
-                             className="flex items-center gap-2 mt-2 sm:mt-0 px-4 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-                           >
-                               <DocumentArrowDownIcon className="w-5 h-5"/>
-                               <span>Descargar</span>
-                           </a>
+                           <div className="flex items-center gap-2 mt-2 sm:mt-0">
+                                <button
+                                    onClick={() => handleLoadToApp(file)}
+                                    disabled={isLoadingToApp === file.id}
+                                    className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+                                >
+                                    {isLoadingToApp === file.id
+                                        ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                        : <ArrowDownOnSquareStackIcon className="w-4 h-4"/>
+                                    }
+                                    <span>{isLoadingToApp === file.id ? 'Cargando...' : 'Cargar en App'}</span>
+                                </button>
+                                <a 
+                                 href={getPublicUrl('reportes-semanales', file.name)}
+                                 target="_blank"
+                                 rel="noopener noreferrer"
+                                 className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700"
+                                >
+                                   <DocumentArrowDownIcon className="w-4 h-4"/>
+                                   <span>Descargar</span>
+                                </a>
+                           </div>
                         </li>
                     ))}
                 </ul>
@@ -133,9 +217,11 @@ interface SemanasRegistradasTabProps {
   setRecords: React.Dispatch<React.SetStateAction<WeeklyRecord[]>>;
   members: Member[];
   categories: string[];
+  formulas: Formulas;
+  churchInfo: ChurchInfo;
 }
 
-const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, setRecords, members, categories }) => {
+const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, setRecords, members, categories, formulas, churchInfo }) => {
   const [editingRecord, setEditingRecord] = useState<WeeklyRecord | null>(null);
   const [tempRecord, setTempRecord] = useState<WeeklyRecord | null>(null);
   const [isUploading, setIsUploading] = useState<string | null>(null);
@@ -234,7 +320,12 @@ const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, 
     const wsDonations = (window as any).XLSX.utils.json_to_sheet(donationsData);
     (window as any).XLSX.utils.book_append_sheet(wb, wsDonations, "Detalle de Ofrendas");
 
-    const fileName = `Semana-${record.day}-${record.month}-${record.year}.xlsx`;
+    const monthName = MONTH_NAMES[record.month - 1];
+    const yearShort = record.year.toString().slice(-2);
+    const dayPadded = record.day.toString().padStart(2, '0');
+    const churchName = (window as any).CHURCH_NAME || 'La_Empresa';
+    const fileName = `${dayPadded}-${monthName}-${yearShort}_${churchName.replace(/ /g, '_')}.xlsx`;
+    
     const excelBuffer = (window as any).XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
 
@@ -242,7 +333,7 @@ const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, 
         const bucketName = 'reportes-semanales';
         try {
             setIsUploading(record.id);
-            await supabase.uploadFile(bucketName, fileName, blob);
+            await supabase.uploadFile(bucketName, fileName, blob, true);
             alert(`Reporte semanal guardado exitosamente en la nube: ${fileName}`);
         } catch(err) {
             const errorMessage = err instanceof Error ? err.message : String(err);
@@ -303,7 +394,7 @@ const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, 
             )}
         </div>
         
-        {supabase.supabase && <UploadedReportsList />}
+        {supabase.supabase && <UploadedReportsList records={records} setRecords={setRecords} formulas={formulas} churchInfo={churchInfo} />}
 
         {editingRecord && tempRecord && (
             <div className="fixed inset-0 z-40 bg-black bg-opacity-50 flex justify-center items-start overflow-y-auto p-4">
