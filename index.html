@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Finanzas - Iglesia</title>
+    <script>
+      // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+        document.documentElement.classList.add('dark')
+      } else {
+        document.documentElement.classList.remove('dark')
+      }
+    </script>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // Enable class-based dark mode in Tailwind
+      tailwind.config = {
+        darkMode: 'class',
+      }
+    </script>
+    <!-- SheetJS (XLSX) for Excel Export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <!-- jsPDF AutoTable plugin -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "@heroicons/react/": "https://aistudiocdn.com/@heroicons/react@^2.2.0/"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-gray-100 dark:bg-gray-900">
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+    
+    <script>
+      // --- CONFIGURACIÓN DE LA APLICACIÓN ---
+      // Para conectar la aplicación a Supabase y configurar el inicio de sesión,
+      // reemplace los valores de marcador de posición a continuación con sus credenciales reales.
+      // Estas variables son seguras de exponer en el navegador porque la seguridad de Supabase 
+      // se gestiona mediante Row Level Security (RLS).
+      
+      // 1. Vaya a su proyecto de Supabase -> Settings -> API.
+      // 2. Copie la 'Project URL'
+      window.SUPABASE_URL = "https://gciwhtxjwqwblnhwlgtb.supabase.co"; 
+
+      // 3. En la misma página, copie la clave 'anon' 'public'.
+      window.SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdjaXdodHhqd3F3YmxuaHdsZ3RiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwMjY1MjIsImV4cCI6MjA3NTYwMjUyMn0.d8EI8ArxmYiiZQKsvXVT9g-VzZcyyAYXciSoDPiIbN4";
+
+      // 4. (Opcional) Configure las credenciales de inicio de sesión personalizadas.
+      // Si no se definen, se usarán los valores predeterminados.
+      window.CHURCH_NAME = "La Empresa";
+      window.CHURCH_PASSWORD = "NIMT02";
+    </script>
+    
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
