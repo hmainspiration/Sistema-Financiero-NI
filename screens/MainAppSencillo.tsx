@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { WeeklyRecord, Member, Donation, Formulas, ChurchInfo } from '../types';
 import Header from '../components/layout/Header';
-import { HomeIcon, ChartBarIcon, CalendarDaysIcon, TrashIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { CirclePlus, BarChart2, CalendarDays, Trash2, Plus, X } from 'lucide-react';
 import { MONTH_NAMES } from '../constants';
 import { useSupabase } from '../context/SupabaseContext';
 
@@ -127,7 +127,7 @@ const RegistroSencilloTab: React.FC<{record: WeeklyRecord, setRecord: React.Disp
                 <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-center p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative dark:bg-gray-800">
                         <button onClick={() => setIsAddModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-                            <XMarkIcon className="w-8 h-8"/>
+                            <X className="w-8 h-8"/>
                         </button>
                         <div className="p-6 space-y-6">
                             <div>
@@ -155,7 +155,7 @@ const RegistroSencilloTab: React.FC<{record: WeeklyRecord, setRecord: React.Disp
                         <p className="text-gray-500 text-lg dark:text-gray-400">{`Semana del ${record.day} de ${MONTH_NAMES[record.month - 1]}, ${record.year}`}</p>
                     </div>
                      <button onClick={() => setIsAddModalOpen(true)} className="flex-shrink-0 flex items-center justify-center w-12 h-12 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900" title="Agregar Miembro/Categoría">
-                        <PlusIcon className="w-6 h-6"/>
+                        <Plus className="w-6 h-6"/>
                     </button>
                 </div>
 
@@ -170,7 +170,7 @@ const RegistroSencilloTab: React.FC<{record: WeeklyRecord, setRecord: React.Disp
                     </select>
 
                     <button onClick={handleAddDonation} className="w-full flex items-center justify-center gap-2 py-4 font-bold text-white text-lg transition duration-300 bg-blue-600 rounded-xl hover:bg-blue-700 !mt-6">
-                        <PlusIcon className="w-6 h-6" /> Agregar Ofrenda
+                        <Plus className="w-6 h-6" /> Agregar Ofrenda
                     </button>
                 </div>
             </div>
@@ -185,7 +185,7 @@ const RegistroSencilloTab: React.FC<{record: WeeklyRecord, setRecord: React.Disp
                                     <p className="font-semibold text-lg">{donation.memberName}</p>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">{donation.category} - C$ {donation.amount.toFixed(2)}</p>
                                 </div>
-                                <button onClick={() => handleRemoveDonation(donation.id)} className="text-red-500 hover:text-red-700 p-2 dark:text-red-400 dark:hover:text-red-300"><TrashIcon className="w-5 h-5" /></button>
+                                <button onClick={() => handleRemoveDonation(donation.id)} className="text-red-500 hover:text-red-700 p-2 dark:text-red-400 dark:hover:text-red-300"><Trash2 className="w-5 h-5" /></button>
                             </div>
                         ))
                     ) : (
@@ -259,7 +259,7 @@ const HistorialSencilloTab: React.FC<{records: WeeklyRecord[], onSelectRecord: (
              <div className="flex justify-between items-center">
                 <h2 className="text-3xl font-bold text-indigo-900 dark:text-indigo-300">Semanas Pasadas</h2>
                 <button onClick={onStartNew} className="flex items-center gap-2 px-4 py-2 font-semibold text-white transition duration-300 bg-blue-600 rounded-full shadow-md hover:bg-blue-700">
-                    <PlusIcon className="w-5 h-5" /> Nueva
+                    <Plus className="w-5 h-5" /> Nueva
                 </button>
             </div>
             <div className="space-y-4">
@@ -312,9 +312,9 @@ interface MainAppSencilloProps {
 }
 
 const navItems = [
-  { id: 'register', label: 'Registrar', icon: HomeIcon },
-  { id: 'summary', label: 'Resumen', icon: ChartBarIcon },
-  { id: 'history', label: 'Semanas', icon: CalendarDaysIcon },
+  { id: 'register', label: 'Registrar', icon: CirclePlus },
+  { id: 'summary', label: 'Resumen', icon: BarChart2 },
+  { id: 'history', label: 'Semanas', icon: CalendarDays },
 ];
 
 const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVersion, data, handlers, theme, toggleTheme }) => {

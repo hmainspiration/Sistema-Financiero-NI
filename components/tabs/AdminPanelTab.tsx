@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Member, Formulas, ChurchInfo } from '../../types';
 import { useSupabase } from '../../context/SupabaseContext';
-import { UserPlusIcon, PencilIcon, TrashIcon, CheckIcon, XMarkIcon, ServerIcon, WifiIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
+import { UserPlus, Pencil, Trash2, Check, X, Server, Wifi, AlertTriangle } from 'lucide-react';
 
 
 const SupabaseStatusIndicator: React.FC = () => {
@@ -11,7 +11,7 @@ const SupabaseStatusIndicator: React.FC = () => {
         return (
             <div className="p-4 text-sm text-left text-red-800 bg-red-100 border border-red-200 rounded-lg dark:bg-red-900/30 dark:text-red-300 dark:border-red-500/50" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
                 <div className="flex items-start gap-2">
-                  <ExclamationTriangleIcon className="w-5 h-5 mt-0.5 flex-shrink-0" />
+                  <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-bold">Error de conexión a la Nube (Supabase)</p>
                     <p className="mt-2">{error}</p>
@@ -24,7 +24,7 @@ const SupabaseStatusIndicator: React.FC = () => {
     if (supabase) {
         return (
             <div className="flex items-center gap-4 p-3 bg-green-100 border border-green-200 rounded-lg dark:bg-green-900/30 dark:border-green-500/50">
-                <WifiIcon className="w-5 h-5 text-green-800 dark:text-green-300"/>
+                <Wifi className="w-5 h-5 text-green-800 dark:text-green-300"/>
                 <p className="text-sm text-green-800 dark:text-green-300">Conectado a Supabase exitosamente.</p>
             </div>
         );
@@ -32,7 +32,7 @@ const SupabaseStatusIndicator: React.FC = () => {
 
     return (
         <div className="flex items-center gap-4 p-3 bg-yellow-100 border border-yellow-200 rounded-lg dark:bg-yellow-900/30 dark:border-yellow-500/50">
-             <ServerIcon className="w-5 h-5 text-yellow-800 dark:text-yellow-300"/>
+             <Server className="w-5 h-5 text-yellow-800 dark:text-yellow-300"/>
              <p className="text-sm text-yellow-800 dark:text-yellow-300">Inicializando conexión con Supabase...</p>
         </div>
     );
@@ -195,7 +195,7 @@ const AdminPanelTab: React.FC<{
                 <div className="flex gap-2 mb-4">
                     <input type="text" value={newMemberName} onChange={e => setNewMemberName(e.target.value)} placeholder="Nuevo miembro" className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
                     <button onClick={handleAddMember} disabled={isSubmitting} className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400">
-                        <UserPlusIcon className="w-5 h-5" />
+                        <UserPlus className="w-5 h-5" />
                     </button>
                 </div>
                 <ul className="space-y-2 max-h-60 overflow-y-auto">
@@ -211,16 +211,16 @@ const AdminPanelTab: React.FC<{
                                         autoFocus
                                     />
                                     <div className="flex items-center gap-2 ml-2">
-                                        <button onClick={handleSaveEdit} disabled={isSubmitting} className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 disabled:text-gray-400"><CheckIcon className="w-5 h-5"/></button>
-                                        <button onClick={() => setEditingMember(null)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"><XMarkIcon className="w-5 h-5"/></button>
+                                        <button onClick={handleSaveEdit} disabled={isSubmitting} className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 disabled:text-gray-400"><Check className="w-5 h-5"/></button>
+                                        <button onClick={() => setEditingMember(null)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"><X className="w-5 h-5"/></button>
                                     </div>
                                 </>
                             ) : (
                                 <>
                                     <span className="dark:text-gray-200">{m.name}</span>
                                     <div className="flex items-center gap-3">
-                                        <button onClick={() => handleStartEdit(m)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"><PencilIcon className="w-5 h-5"/></button>
-                                        <button onClick={() => handleDeleteMember(m.id)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"><TrashIcon className="w-5 h-5"/></button>
+                                        <button onClick={() => handleStartEdit(m)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"><Pencil className="w-5 h-5"/></button>
+                                        <button onClick={() => handleDeleteMember(m.id)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"><Trash2 className="w-5 h-5"/></button>
                                     </div>
                                 </>
                             )}
@@ -234,11 +234,11 @@ const AdminPanelTab: React.FC<{
                 <div className="flex gap-2 mb-4">
                     <input type="text" value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="Nueva categoría" className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
                     <button onClick={handleAddCategory} disabled={isSubmitting} className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400">
-                        <UserPlusIcon className="w-5 h-5" />
+                        <UserPlus className="w-5 h-5" />
                     </button>
                 </div>
                 <ul className="space-y-2 max-h-60 overflow-y-auto">
-                    {categories.map(c => <li key={c} className="flex justify-between items-center p-2 bg-gray-50 rounded-md dark:bg-gray-700/50"><span className="dark:text-gray-200">{c}</span><button onClick={() => handleDeleteCategory(c)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"><TrashIcon className="w-5 h-5"/></button></li>)}
+                    {categories.map(c => <li key={c} className="flex justify-between items-center p-2 bg-gray-50 rounded-md dark:bg-gray-700/50"><span className="dark:text-gray-200">{c}</span><button onClick={() => handleDeleteCategory(c)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"><Trash2 className="w-5 h-5"/></button></li>)}
                 </ul>
             </div>
 

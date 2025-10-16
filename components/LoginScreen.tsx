@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LockClosedIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { Lock, Eye, EyeOff } from 'lucide-react';
 
 interface LoginScreenProps {
   onLoginSuccess: () => void;
@@ -45,7 +45,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
             <label htmlFor="password-login" className="text-sm font-medium text-gray-700 dark:text-gray-300">Clave de Iglesia</label>
             <div className="relative mt-1">
                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                <LockClosedIcon className="w-5 h-5 text-gray-400 dark:text-gray-500" />
+                <Lock className="w-5 h-5 text-gray-400 dark:text-gray-500" />
               </span>
               <input
                 id="password-login"
@@ -63,9 +63,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
                 aria-label={isPasswordVisible ? 'Ocultar clave' : 'Mostrar clave'}
               >
                 {isPasswordVisible ? (
-                  <EyeSlashIcon className="w-5 h-5" />
+                  <EyeOff className="w-5 h-5" />
                 ) : (
-                  <EyeIcon className="w-5 h-5" />
+                  <Eye className="w-5 h-5" />
                 )}
               </button>
             </div>

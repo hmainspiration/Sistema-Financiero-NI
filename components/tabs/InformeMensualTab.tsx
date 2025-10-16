@@ -1,7 +1,7 @@
 import React, { useState, useMemo, FC, useEffect } from 'react';
 import { WeeklyRecord, Formulas, MonthlyReport, MonthlyReportFormState, ChurchInfo } from '../../types';
 import { MONTH_NAMES, initialMonthlyReportFormState } from '../../constants';
-import { ArrowUpOnSquareIcon, TrashIcon, ArchiveBoxArrowDownIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
+import { Upload, Trash2, Save, FileDown } from 'lucide-react';
 import { useSupabase } from '../../context/SupabaseContext';
 
 
@@ -131,7 +131,7 @@ const UploadedMonthlyReportsList: React.FC = () => {
                                 rel="noopener noreferrer"
                                 className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors"
                             >
-                                <DocumentArrowDownIcon className="w-4 h-4" />
+                                <FileDown className="w-4 h-4" />
                                 Descargar
                             </a>
                         </div>
@@ -497,15 +497,15 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
                                 </div>
                                 <div className="flex items-center space-x-2 mt-2 sm:mt-0">
                                     <button onClick={() => handleLoadReport(report)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors">
-                                        <ArrowUpOnSquareIcon className="w-4 h-4" />
+                                        <Upload className="w-4 h-4" />
                                         Cargar
                                     </button>
                                      <button onClick={() => handleExportSavedReport(report)} disabled={isGenerating} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors disabled:bg-gray-400">
-                                        <DocumentArrowDownIcon className="w-4 h-4" />
+                                        <FileDown className="w-4 h-4" />
                                         Exportar
                                     </button>
                                     <button onClick={() => handleDeleteReport(report.id)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors">
-                                        <TrashIcon className="w-4 h-4" />
+                                        <Trash2 className="w-4 h-4" />
                                         Eliminar
                                     </button>
                                 </div>
@@ -633,11 +633,11 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
                 <h3 className="text-xl font-bold text-blue-700 dark:text-blue-400">Acciones del Informe</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                     <button onClick={handleSaveReport} className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors">
-                        <ArchiveBoxArrowDownIcon className="w-5 h-5" />
+                        <Save className="w-5 h-5" />
                         Guardar Borrador
                     </button>
                     <button onClick={handleClearForm} className="w-full flex items-center justify-center gap-2 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition-colors">
-                        <TrashIcon className="w-5 h-5" />
+                        <Trash2 className="w-5 h-5" />
                         Limpiar Formulario
                     </button>
                     <button 
@@ -646,7 +646,7 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
                         title="Generar y descargar PDF"
                         className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed sm:col-span-2 lg:col-span-1"
                     >
-                        <DocumentArrowDownIcon className="w-5 h-5" />
+                        <FileDown className="w-5 h-5" />
                         {isGenerating ? 'Generando...' : 'Generar Reporte en PDF'}
                     </button>
                 </div>

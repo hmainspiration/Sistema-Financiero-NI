@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { Tab } from '../../types';
-import { HomeIcon, ChartBarIcon, CalendarDaysIcon, ChartPieIcon, Cog6ToothIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { CirclePlus, BarChart2, CalendarDays, PieChart, Settings, FileText } from 'lucide-react';
 
 interface BottomNavProps {
   activeTab: Tab;
@@ -9,12 +8,12 @@ interface BottomNavProps {
 }
 
 const navItems = [
-  { id: 'register', label: 'Registro', icon: HomeIcon },
-  { id: 'summary', label: 'Resumen', icon: ChartBarIcon },
-  { id: 'history', label: 'Semanas', icon: CalendarDaysIcon },
-  { id: 'monthly', label: 'Mensual', icon: ChartPieIcon },
-  { id: 'informe', label: 'Informe', icon: DocumentTextIcon },
-  { id: 'admin', label: 'Admin', icon: Cog6ToothIcon },
+  { id: 'register', label: 'Registro', icon: CirclePlus },
+  { id: 'summary', label: 'Resumen', icon: BarChart2 },
+  { id: 'history', label: 'Semanas', icon: CalendarDays },
+  { id: 'monthly', label: 'Mensual', icon: PieChart },
+  { id: 'informe', label: 'Informe', icon: FileText },
+  { id: 'admin', label: 'Admin', icon: Settings },
 ];
 
 const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab }) => {

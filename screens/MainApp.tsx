@@ -10,7 +10,7 @@ import AdminPanelTab from '../components/tabs/AdminPanelTab';
 import InformeMensualTab from '../components/tabs/InformeMensualTab';
 import { useSupabase } from '../context/SupabaseContext';
 import { MONTH_NAMES } from '../constants';
-import { HomeIcon, ChartBarIcon, CalendarDaysIcon, ChartPieIcon, Cog6ToothIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+import { CirclePlus, BarChart2, CalendarDays, PieChart, Settings, FileText } from 'lucide-react';
 
 
 // Define props based on what App.tsx passes
@@ -44,12 +44,12 @@ interface MainAppProps {
 }
 
 const navItems = [
-  { id: 'register', label: 'Registro', icon: HomeIcon },
-  { id: 'summary', label: 'Resumen', icon: ChartBarIcon },
-  { id: 'history', label: 'Semanas', icon: CalendarDaysIcon },
-  { id: 'monthly', label: 'Mensual', icon: ChartPieIcon },
-  { id: 'informe', label: 'Informe', icon: DocumentTextIcon },
-  { id: 'admin', label: 'Admin', icon: Cog6ToothIcon },
+  { id: 'register', label: 'Registro', icon: CirclePlus },
+  { id: 'summary', label: 'Resumen', icon: BarChart2 },
+  { id: 'history', label: 'Semanas', icon: CalendarDays },
+  { id: 'monthly', label: 'Mensual', icon: PieChart },
+  { id: 'informe', label: 'Informe', icon: FileText },
+  { id: 'admin', label: 'Admin', icon: Settings },
 ];
 
 const MainApp: React.FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, handlers, theme, toggleTheme }) => {

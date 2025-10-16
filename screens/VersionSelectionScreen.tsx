@@ -1,5 +1,5 @@
 import React from 'react';
-import { ComputerDesktopIcon, DevicePhoneMobileIcon } from '@heroicons/react/24/outline';
+import { Monitor, Smartphone } from 'lucide-react';
 
 interface VersionSelectionScreenProps {
     onSelect: (version: 'sencillo' | 'completo') => void;
@@ -17,7 +17,7 @@ const VersionSelectionScreen: React.FC<VersionSelectionScreenProps> = ({ onSelec
                         onClick={() => onSelect('sencillo')}
                         className="group flex flex-col items-center justify-center w-full p-6 text-left transition duration-300 border-2 border-transparent rounded-lg bg-gray-50 hover:bg-white hover:border-blue-600 hover:shadow-lg dark:bg-gray-700 dark:hover:bg-gray-600 dark:hover:border-blue-500"
                     >
-                         <DevicePhoneMobileIcon className="w-12 h-12 mb-3 text-blue-600 dark:text-blue-400" />
+                         <Smartphone className="w-12 h-12 mb-3 text-blue-600 dark:text-blue-400" />
                         <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">Versión Sencilla</h2>
                         <p className="mt-1 text-gray-500 dark:text-gray-400">Ideal para un registro rápido y fácil.</p>
                     </button>
@@ -26,7 +26,7 @@ const VersionSelectionScreen: React.FC<VersionSelectionScreenProps> = ({ onSelec
                         onClick={() => onSelect('completo')}
                         className="group flex flex-col items-center justify-center w-full p-6 text-left transition duration-300 border-2 border-transparent rounded-lg bg-gray-50 hover:bg-white hover:border-blue-600 hover:shadow-lg dark:bg-gray-700 dark:hover:bg-gray-600 dark:hover:border-blue-500"
                     >
-                        <ComputerDesktopIcon className="w-12 h-12 mb-3 text-indigo-800 dark:text-indigo-400" />
+                        <Monitor className="w-12 h-12 mb-3 text-indigo-800 dark:text-indigo-400" />
                         <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">Versión Completa</h2>
                         <p className="mt-1 text-gray-500 dark:text-gray-400">Acceso a todas las funciones, incluyendo informes mensuales y administración avanzada.</p>
                     </button>

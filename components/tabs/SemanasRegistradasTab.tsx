@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { WeeklyRecord, Member, Donation, Formulas, ChurchInfo } from '../../types';
-import { PencilIcon, TrashIcon, XMarkIcon, PlusIcon, CloudArrowUpIcon, DocumentArrowDownIcon, ArrowDownOnSquareStackIcon } from '@heroicons/react/24/outline';
+import { Pencil, Trash2, X, Plus, CloudUpload, FileDown, Download } from 'lucide-react';
 import { MONTH_NAMES } from '../../constants';
 import { useSupabase } from '../../context/SupabaseContext';
 
@@ -187,7 +187,7 @@ const UploadedReportsList: React.FC<{
                                 >
                                     {isLoadingToApp === file.id
                                         ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        : <ArrowDownOnSquareStackIcon className="w-4 h-4"/>
+                                        : <Download className="w-4 h-4"/>
                                     }
                                     <span>{isLoadingToApp === file.id ? 'Cargando...' : 'Cargar en App'}</span>
                                 </button>
@@ -197,7 +197,7 @@ const UploadedReportsList: React.FC<{
                                  rel="noopener noreferrer"
                                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-white bg-green-600 rounded-lg hover:bg-green-700"
                                 >
-                                   <DocumentArrowDownIcon className="w-4 h-4"/>
+                                   <FileDown className="w-4 h-4"/>
                                    <span>Descargar</span>
                                 </a>
                            </div>
@@ -368,10 +368,10 @@ const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, 
                             </div>
                             <div className="flex items-center gap-2 flex-wrap">
                                 <button onClick={() => handleOpenEditModal(record)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-yellow-500 rounded-md hover:bg-yellow-600">
-                                    <PencilIcon className="w-4 h-4" /> Editar
+                                    <Pencil className="w-4 h-4" /> Editar
                                 </button>
                                 <button onClick={() => handleDelete(record.id)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-red-600 rounded-md hover:bg-red-700">
-                                    <TrashIcon className="w-4 h-4" /> Eliminar
+                                    <Trash2 className="w-4 h-4" /> Eliminar
                                 </button>
                                 <button 
                                     onClick={() => handleExportAndUpload(record)} 
@@ -380,7 +380,7 @@ const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, 
                                 >
                                     {isUploading === record.id 
                                         ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                        : <CloudArrowUpIcon className="w-4 h-4" />
+                                        : <CloudUpload className="w-4 h-4" />
                                     }
                                     {isUploading === record.id ? 'Subiendo...' : 'Subir'}
                                 </button>
@@ -403,7 +403,7 @@ const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, 
                          <h3 className="text-2xl font-bold text-indigo-900 dark:text-indigo-300">Editando Semana</h3>
                          <p className="text-gray-500 dark:text-gray-400">{`${tempRecord.day} de ${MONTH_NAMES[tempRecord.month - 1]} de ${tempRecord.year}`}</p>
                         <button onClick={handleCloseModal} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-                            <XMarkIcon className="w-8 h-8"/>
+                            <X className="w-8 h-8"/>
                         </button>
                     </div>
                     
@@ -447,7 +447,7 @@ const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, 
                                     <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="0.00" className="mt-1 w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" />
                                 </div>
                                 <button onClick={handleAddDonation} className="flex items-center justify-center gap-2 py-3 px-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                                    <PlusIcon className="w-5 h-5"/> Agregar
+                                    <Plus className="w-5 h-5"/> Agregar
                                 </button>
                             </div>
                         </div>
@@ -461,7 +461,7 @@ const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, 
                                         <p className="text-sm text-gray-500 dark:text-gray-400">{donation.category} - C$ {donation.amount.toFixed(2)}</p>
                                     </div>
                                     <button onClick={() => handleRemoveDonation(donation.id)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300">
-                                        <TrashIcon className="w-5 h-5"/>
+                                        <Trash2 className="w-5 h-5"/>
                                     </button>
                                 </div>
                             )) : <p className="text-center text-gray-500 py-4 dark:text-gray-400">No hay donaciones en este registro.</p>}

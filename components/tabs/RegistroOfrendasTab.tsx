@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { WeeklyRecord, Member, Donation, Formulas, ChurchInfo } from '../../types';
 import { MONTH_NAMES } from '../../constants';
-import { TrashIcon, PlusIcon, CalendarIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { Trash2, Plus, Calendar, X } from 'lucide-react';
 import { useSupabase } from '../../context/SupabaseContext';
 
 // Autocomplete component, similar to the one in SemanasRegistradasTab
@@ -160,7 +160,7 @@ const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
         return (
             <div className="p-6 bg-white rounded-xl shadow-lg h-full flex flex-col justify-center dark:bg-gray-800">
                 <div className="text-center">
-                    <CalendarIcon className="w-16 h-16 mx-auto text-blue-600 dark:text-blue-400" />
+                    <Calendar className="w-16 h-16 mx-auto text-blue-600 dark:text-blue-400" />
                     <h2 className="text-3xl font-bold text-indigo-900 mt-4 mb-2 dark:text-indigo-300">Iniciar Nuevo Registro Semanal</h2>
                     <p className="text-gray-500 mb-6 dark:text-gray-400">Seleccione la fecha de cierre de la semana (usualmente domingo).</p>
                 </div>
@@ -193,7 +193,7 @@ const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
                 <div className="fixed inset-0 z-50 bg-black bg-opacity-50 flex justify-center items-center p-4">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md relative dark:bg-gray-800">
                         <button onClick={() => setIsAddModalOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200">
-                            <XMarkIcon className="w-8 h-8"/>
+                            <X className="w-8 h-8"/>
                         </button>
                         <div className="p-6 space-y-6">
                             <div>
@@ -222,7 +222,7 @@ const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
                         <p className="text-gray-500 dark:text-gray-400">{`Semana del ${currentRecord.day} de ${MONTH_NAMES[currentRecord.month - 1]}, ${currentRecord.year}`}</p>
                     </div>
                     <button onClick={() => setIsAddModalOpen(true)} className="flex-shrink-0 flex items-center justify-center w-12 h-12 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors dark:bg-blue-900/50 dark:text-blue-300 dark:hover:bg-blue-900" title="Agregar Miembro/Categoría">
-                        <PlusIcon className="w-6 h-6"/>
+                        <Plus className="w-6 h-6"/>
                     </button>
                 </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
@@ -232,7 +232,7 @@ const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
                         {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
                     <button onClick={handleAddDonation} className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700">
-                       <PlusIcon className="w-5 h-5"/> Agregar Ofrenda
+                       <Plus className="w-5 h-5"/> Agregar Ofrenda
                     </button>
                 </div>
             </div>
@@ -247,7 +247,7 @@ const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
                                     <p className="font-semibold">{donation.memberName}</p>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">{donation.category} - C$ {donation.amount.toFixed(2)}</p>
                                 </div>
-                                <button onClick={() => handleRemoveDonation(donation.id)} className="text-red-500 hover:text-red-700 p-2 dark:text-red-400 dark:hover:text-red-300"><TrashIcon className="w-5 h-5" /></button>
+                                <button onClick={() => handleRemoveDonation(donation.id)} className="text-red-500 hover:text-red-700 p-2 dark:text-red-400 dark:hover:text-red-300"><Trash2 className="w-5 h-5" /></button>
                             </div>
                         ))
                     ) : (
