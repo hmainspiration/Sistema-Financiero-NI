@@ -1,6 +1,6 @@
 // Fix: Created a functional header component.
 import React from 'react';
-import { ArrowLeftOnRectangleIcon, SunIcon, MoonIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
+import { SunIcon, MoonIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 interface NavItem {
     id: string;
