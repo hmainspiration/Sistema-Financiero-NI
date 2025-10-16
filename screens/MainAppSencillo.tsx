@@ -311,6 +311,12 @@ interface MainAppSencilloProps {
   toggleTheme: () => void;
 }
 
+const navItems = [
+  { id: 'register', label: 'Registrar', icon: HomeIcon },
+  { id: 'summary', label: 'Resumen', icon: ChartBarIcon },
+  { id: 'history', label: 'Semanas', icon: CalendarDaysIcon },
+];
+
 const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVersion, data, handlers, theme, toggleTheme }) => {
     const [activeTab, setActiveTab] = useState<'register' | 'summary' | 'history'>('register');
     const { members, categories, weeklyRecords, currentRecord, formulas, churchInfo } = data;
@@ -432,12 +438,6 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
         setDateInfo({ ...dateInfo, [e.target.name]: e.target.value });
     };
 
-    const navItems = [
-      { id: 'register', label: 'Registrar', icon: HomeIcon },
-      { id: 'summary', label: 'Resumen', icon: ChartBarIcon },
-      { id: 'history', label: 'Semanas', icon: CalendarDaysIcon },
-    ];
-
     const renderContent = () => {
         if (!currentRecord && activeTab !== 'history') {
              return (
@@ -479,12 +479,21 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
     
     return (
         <div className="flex flex-col h-screen">
-            <Header onLogout={onLogout} onSwitchVersion={onSwitchVersion} showSwitchVersion={true} theme={theme} toggleTheme={toggleTheme}/>
-            <main className="flex-grow p-4 pb-24 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+            <Header 
+                onLogout={onLogout} 
+                onSwitchVersion={onSwitchVersion} 
+                showSwitchVersion={true} 
+                theme={theme} 
+                toggleTheme={toggleTheme}
+                navItems={navItems}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab as (tab: string) => void}
+            />
+            <main className="flex-grow p-4 pb-4 overflow-y-auto bg-gray-50 dark:bg-gray-900">
                 <div className="max-w-2xl mx-auto h-full">
                     {renderContent()}
                     {currentRecord && activeTab === 'register' && (
-                        <div className="fixed bottom-24 right-4 z-20">
+                        <div className="fixed bottom-6 right-4 z-20">
                             <button onClick={handleSaveCurrentRecord} className="px-6 py-4 bg-green-600 text-white font-bold rounded-full shadow-lg hover:bg-green-700 transition-transform hover:scale-105">
                                 Guardar
                             </button>
@@ -492,16 +501,6 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
                     )}
                 </div>
             </main>
-            <nav className="fixed bottom-0 left-0 right-0 z-10 bg-white border-t border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-              <div className="flex justify-around max-w-2xl mx-auto">
-                {navItems.map((item) => (
-                  <button key={item.id} onClick={() => setActiveTab(item.id as any)} className={`flex flex-col items-center justify-center w-full pt-3 pb-2 text-sm transition-colors duration-200 ${activeTab === item.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400'}`}>
-                    <item.icon className="w-7 h-7 mb-1" />
-                    <span>{item.label}</span>
-                  </button>
-                ))}
-              </div>
-            </nav>
             {isSaving && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-lg flex items-center gap-4 dark:bg-gray-800">

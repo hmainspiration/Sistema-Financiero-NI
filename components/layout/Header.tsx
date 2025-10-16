@@ -2,6 +2,11 @@
 import React from 'react';
 import { ArrowLeftOnRectangleIcon, SunIcon, MoonIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
+interface NavItem {
+    id: string;
+    label: string;
+    icon: React.ElementType;
+}
 interface HeaderProps {
     onLogout: () => void;
     // FIX: Added missing props for version switching and theme toggling.
@@ -9,9 +14,22 @@ interface HeaderProps {
     showSwitchVersion: boolean;
     theme: string;
     toggleTheme: () => void;
+    // Added for top navigation
+    navItems: NavItem[];
+    activeTab: string;
+    setActiveTab: (tab: string) => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onLogout, onSwitchVersion, showSwitchVersion, theme, toggleTheme }) => {
+const Header: React.FC<HeaderProps> = ({ 
+    onLogout, 
+    onSwitchVersion, 
+    showSwitchVersion, 
+    theme, 
+    toggleTheme,
+    navItems,
+    activeTab,
+    setActiveTab
+}) => {
     return (
         <header className="bg-white dark:bg-gray-800 shadow-md sticky top-0 z-20">
             <div className="max-w-4xl mx-auto px-4 py-3 flex justify-between items-center">
@@ -45,6 +63,23 @@ const Header: React.FC<HeaderProps> = ({ onLogout, onSwitchVersion, showSwitchVe
                     </button>
                 </div>
             </div>
+            <nav className="border-t border-gray-200 dark:border-gray-700">
+                <div className="flex justify-around max-w-4xl mx-auto">
+                    {navItems.map((item) => (
+                        <button
+                            key={item.id}
+                            onClick={() => setActiveTab(item.id)}
+                            className={`flex flex-col items-center justify-center w-full pt-2 pb-1 text-xs transition-colors duration-200 ${
+                            activeTab === item.id ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400'
+                            }`}
+                        >
+                            <item.icon className="w-6 h-6 mb-1" />
+                            <span>{item.label}</span>
+                             {activeTab === item.id && <div className="w-full h-1 mt-1 rounded-full bg-blue-600 dark:bg-blue-400"></div>}
+                        </button>
+                    ))}
+                </div>
+            </nav>
         </header>
     );
 };

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, FC } from 'react';
+import React, { useState, useMemo, FC, useEffect } from 'react';
 import { WeeklyRecord, Formulas, MonthlyReport, MonthlyReportFormState, ChurchInfo } from '../../types';
 import { MONTH_NAMES, initialMonthlyReportFormState } from '../../constants';
 import { ArrowUpOnSquareIcon, TrashIcon, ArchiveBoxArrowDownIcon, DocumentArrowDownIcon } from '@heroicons/react/24/outline';
@@ -46,6 +46,104 @@ const CurrencyInput: FC<{ id: string, placeholder: string, value: string, onChan
     </div>
 );
 
+const calculateReportTotals = (formData: MonthlyReportFormState) => {
+    const getNumericValue = (key: keyof MonthlyReportFormState) => parseFloat(formData[key]) || 0;
+
+    const ingOfrendas = ['ing-diezmos', 'ing-ofrendas-ordinarias', 'ing-primicias', 'ing-ayuda-encargado'].reduce((sum, key) => sum + getNumericValue(key as keyof MonthlyReportFormState), 0);
+    const ingEspeciales = ['ing-ceremonial', 'ing-ofrenda-especial-sdd', 'ing-evangelizacion', 'ing-santa-cena'].reduce((sum, key) => sum + getNumericValue(key as keyof MonthlyReportFormState), 0);
+    const ingLocales = [
+        'ing-servicios-publicos', 'ing-arreglos-locales', 'ing-mantenimiento', 'ing-construccion-local',
+        'ing-muebles', 'ing-viajes-ministro', 'ing-reuniones-ministeriales', 'ing-atencion-ministros',
+        'ing-viajes-extranjero', 'ing-actividades-locales', 'ing-ciudad-lldm', 'ing-adquisicion-terreno'
+    ].reduce((sum, key) => sum + getNumericValue(key as keyof MonthlyReportFormState), 0);
+    
+    const totalIngresos = ingOfrendas + ingEspeciales + ingLocales;
+    const saldoAnterior = getNumericValue('saldo-anterior');
+    const totalDisponible = saldoAnterior + totalIngresos;
+
+    const totalManutencion = getNumericValue('egr-asignacion') - getNumericValue('egr-gomer');
+    const egrEspeciales = ['egr-ceremonial', 'egr-ofrenda-especial-sdd', 'egr-evangelizacion', 'egr-santa-cena'].reduce((sum, key) => sum + getNumericValue(key as keyof MonthlyReportFormState), 0);
+    const egrLocales = [
+        'egr-servicios-publicos', 'egr-arreglos-locales', 'egr-mantenimiento', 'egr-traspaso-construccion',
+        'egr-muebles', 'egr-viajes-ministro', 'egr-reuniones-ministeriales', 'egr-atencion-ministros',
+        'egr-viajes-extranjero', 'egr-actividades-locales', 'egr-ciudad-lldm', 'egr-adquisicion-terreno'
+    ].reduce((sum, key) => sum + getNumericValue(key as keyof MonthlyReportFormState), 0);
+
+    const totalSalidas = getNumericValue('egr-gomer') + egrEspeciales + egrLocales;
+    const remanente = totalDisponible - totalSalidas;
+
+    return {
+        ingOfrendas, ingEspeciales, ingLocales, totalIngresos, saldoAnterior, totalDisponible,
+        totalManutencion, egrEspeciales, egrLocales, totalSalidas, remanente
+    };
+};
+
+const UploadedMonthlyReportsList: React.FC = () => {
+    const [files, setFiles] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const { supabase, listFiles, getPublicUrl } = useSupabase();
+
+    useEffect(() => {
+        if (!supabase) {
+            setLoading(false);
+            setError("Supabase client not initialized.");
+            return;
+        }
+
+        const fetchFiles = async () => {
+            try {
+                setLoading(true);
+                setError(null);
+                const fileList = await listFiles('reportes-mensuales');
+                setFiles(fileList || []);
+            } catch (e) {
+                setError(e instanceof Error ? e.message : 'Error al cargar los reportes de la nube.');
+                console.error(e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchFiles();
+    }, [supabase, listFiles]);
+
+    if (loading) {
+        return <p className="text-center text-gray-500 py-2 dark:text-gray-400">Cargando reportes de la nube...</p>;
+    }
+
+    if (error) {
+        return <div className="p-3 text-center text-red-600 bg-red-50 rounded-lg dark:bg-red-900/30 dark:text-red-300">{error}</div>;
+    }
+
+    return (
+        <div className="space-y-3 max-h-60 overflow-y-auto p-1">
+            {files.length > 0 ? (
+                files.map(file => (
+                    <div key={file.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 rounded-lg border dark:bg-gray-700 dark:border-gray-600">
+                        <div>
+                            <p className="font-semibold text-sm text-gray-800 dark:text-gray-200">{file.name}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">Subido: {new Date(file.created_at).toLocaleString()}</p>
+                        </div>
+                        <div className="flex items-center space-x-2 mt-2 sm:mt-0">
+                            <a
+                                href={getPublicUrl('reportes-mensuales', file.name)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-700 transition-colors"
+                            >
+                                <DocumentArrowDownIcon className="w-4 h-4" />
+                                Descargar
+                            </a>
+                        </div>
+                    </div>
+                ))
+            ) : (
+                <p className="text-center text-gray-500 py-2 dark:text-gray-400">No hay informes mensuales en la nube.</p>
+            )}
+        </div>
+    );
+};
+
 
 const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas, savedReports, setSavedReports, churchInfo }) => {
     const [formState, setFormState] = useState<MonthlyReportFormState>(initialMonthlyReportFormState);
@@ -58,8 +156,6 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
         const { name, value } = e.target;
         setFormState(prevState => ({ ...prevState, [name]: value }));
     };
-
-    const getNumericValue = (key: keyof MonthlyReportFormState) => parseFloat(formState[key]) || 0;
 
     const handleLoadData = () => {
         const filteredRecords = records.filter(r => r.month === selectedMonth && r.year === selectedYear);
@@ -118,37 +214,191 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
          alert(`Datos cargados para ${MONTH_NAMES[selectedMonth - 1]} ${selectedYear}.`);
     };
 
-    const calculations = useMemo(() => {
-        const ingOfrendas = ['ing-diezmos', 'ing-ofrendas-ordinarias', 'ing-primicias', 'ing-ayuda-encargado'].reduce((sum, key) => sum + getNumericValue(key as keyof MonthlyReportFormState), 0);
-        const ingEspeciales = ['ing-ceremonial', 'ing-ofrenda-especial-sdd', 'ing-evangelizacion', 'ing-santa-cena'].reduce((sum, key) => sum + getNumericValue(key as keyof MonthlyReportFormState), 0);
-        const ingLocales = [
-            'ing-servicios-publicos', 'ing-arreglos-locales', 'ing-mantenimiento', 'ing-construccion-local',
-            'ing-muebles', 'ing-viajes-ministro', 'ing-reuniones-ministeriales', 'ing-atencion-ministros',
-            'ing-viajes-extranjero', 'ing-actividades-locales', 'ing-ciudad-lldm', 'ing-adquisicion-terreno'
-        ].reduce((sum, key) => sum + getNumericValue(key as keyof MonthlyReportFormState), 0);
-        
-        const totalIngresos = ingOfrendas + ingEspeciales + ingLocales;
-        const saldoAnterior = getNumericValue('saldo-anterior');
-        const totalDisponible = saldoAnterior + totalIngresos;
-
-        const totalManutencion = getNumericValue('egr-asignacion') - getNumericValue('egr-gomer');
-        const egrEspeciales = ['egr-ceremonial', 'egr-ofrenda-especial-sdd', 'egr-evangelizacion', 'egr-santa-cena'].reduce((sum, key) => sum + getNumericValue(key as keyof MonthlyReportFormState), 0);
-        const egrLocales = [
-            'egr-servicios-publicos', 'egr-arreglos-locales', 'egr-mantenimiento', 'egr-traspaso-construccion',
-            'egr-muebles', 'egr-viajes-ministro', 'egr-reuniones-ministeriales', 'egr-atencion-ministros',
-            'egr-viajes-extranjero', 'egr-actividades-locales', 'egr-ciudad-lldm', 'egr-adquisicion-terreno'
-        ].reduce((sum, key) => sum + getNumericValue(key as keyof MonthlyReportFormState), 0);
-
-        const totalSalidas = getNumericValue('egr-gomer') + egrEspeciales + egrLocales;
-        const remanente = totalDisponible - totalSalidas;
-
-        return {
-            ingOfrendas, ingEspeciales, ingLocales, totalIngresos, saldoAnterior, totalDisponible,
-            totalManutencion, egrEspeciales, egrLocales, totalSalidas, remanente
-        };
-    }, [formState]);
-
     const formatCurrency = (value: number) => `C$ ${value.toLocaleString('es-NI', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+    const createPdfBlob = (formData: MonthlyReportFormState) => {
+        const { jsPDF } = (window as any).jspdf;
+        const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        
+        const calculations = calculateReportTotals(formData);
+        const getNumericValue = (key: keyof MonthlyReportFormState) => parseFloat(formData[key]) || 0;
+
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
+        const margin = 10;
+        let startY = margin;
+        const getText = (key: keyof MonthlyReportFormState) => formData[key] || '';
+        const getValue = (key: keyof MonthlyReportFormState) => formatCurrency(getNumericValue(key));
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12);
+        doc.text("IGLESIA DEL DIOS VIVO COLUMNA Y APOYO DE LA VERDAD", pageW / 2, startY + 5, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        doc.text("La Luz del Mundo", pageW / 2, startY + 10, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text("MINISTERIO DE ADMINISTRACIÓN FINANCIERA", pageW / 2, startY + 16, { align: 'center' });
+        doc.setFont('helvetica', 'bold');
+        doc.text("INFORMACIÓN FINANCIERA MENSUAL", pageW / 2, startY + 22, { align: 'center' });
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Jurisdicción Nicaragua, C.A.`, pageW / 2, startY + 27, { align: 'center' });
+        startY += 35;
+        const bodyStyle = { fontSize: 8, cellPadding: 1, lineColor: '#000', lineWidth: 0.1 };
+        const headStyle = { fontSize: 8, fontStyle: 'bold', fillColor: '#f0f0f0', textColor: '#333', halign: 'center', lineColor: '#000', lineWidth: 0.1 };
+        const rightAlign = { halign: 'right' };
+        const subheadStyle = { fontStyle: 'bold', fillColor: '#ffffff' };
+        doc.autoTable({
+            startY: startY,
+            body: [
+                [{ content: 'DATOS DE ESTE INFORME', colSpan: 4, styles: headStyle }],
+                ['DEL MES DE:', getText('mes-reporte'), 'DEL AÑO:', getText('ano-reporte')],
+                ['CLAVE IGLESIA:', getText('clave-iglesia'), 'NOMBRE IGLESIA:', getText('nombre-iglesia')],
+                ['DISTRITO:', getText('distrito'), 'DEPARTAMENTO:', getText('departamento')],
+                ['NOMBRE MINISTRO:', getText('nombre-ministro'), 'GRADO:', getText('grado-ministro')],
+                ['TELÉFONO:', getText('tel-ministro'), 'MIEMBROS ACTIVOS:', getText('miembros-activos')],
+            ],
+            theme: 'grid', styles: { ...bodyStyle, fontSize: 9, cellPadding: 1.5 }, columnStyles: { 0: { fontStyle: 'bold' }, 2: { fontStyle: 'bold' } }
+        });
+        startY = (doc as any).autoTable.previous.finalY + 3;
+        const ingresosData = [
+            [{ content: 'Ingresos por Ofrendas', styles: subheadStyle }, ''],
+            ['Diezmos', { content: getValue('ing-diezmos'), styles: rightAlign }],
+            ['Ofrendas Ordinarias', { content: getValue('ing-ofrendas-ordinarias'), styles: rightAlign }],
+            ['Primicias', { content: getValue('ing-primicias'), styles: rightAlign }],
+            ['Ayuda al Encargado', { content: getValue('ing-ayuda-encargado'), styles: rightAlign }],
+            [{ content: 'Ingresos por Colectas Especiales', styles: subheadStyle }, ''],
+            ['Ceremonial', { content: getValue('ing-ceremonial'), styles: rightAlign }],
+            ['Ofrenda Especial SdD NJG', { content: getValue('ing-ofrenda-especial-sdd'), styles: rightAlign }],
+            ['Evangelización Mundial', { content: getValue('ing-evangelizacion'), styles: rightAlign }],
+            ['Colecta de Santa Cena', { content: getValue('ing-santa-cena'), styles: rightAlign }],
+            [{ content: 'Ingresos por Colectas Locales', styles: subheadStyle }, ''],
+            ['Pago de Servicios Públicos', { content: getValue('ing-servicios-publicos'), styles: rightAlign }],
+            ['Arreglos Locales', { content: getValue('ing-arreglos-locales'), styles: rightAlign }],
+            ['Mantenimiento y Conservación', { content: getValue('ing-mantenimiento'), styles: rightAlign }],
+            ['Construcción Local', { content: getValue('ing-construccion-local'), styles: rightAlign }],
+            ['Muebles y Artículos', { content: getValue('ing-muebles'), styles: rightAlign }],
+            ['Viajes y viáticos para Ministro', { content: getValue('ing-viajes-ministro'), styles: rightAlign }],
+            ['Reuniones Ministeriales', { content: getValue('ing-reuniones-ministeriales'), styles: rightAlign }],
+            ['Atención a Ministros', { content: getValue('ing-atencion-ministros'), styles: rightAlign }],
+            ['Viajes fuera del País', { content: getValue('ing-viajes-extranjero'), styles: rightAlign }],
+            ['Actividades Locales', { content: getValue('ing-actividades-locales'), styles: rightAlign }],
+            ['Ofrendas para Ciudad LLDM', { content: getValue('ing-ciudad-lldm'), styles: rightAlign }],
+            ['Adquisición Terreno/Edificio', { content: getValue('ing-adquisicion-terreno'), styles: rightAlign }],
+        ];
+        const egresosData = [
+            [{ content: 'Manutención del Ministro', styles: subheadStyle }, ''],
+            ['Asignación Autorizada', { content: getValue('egr-asignacion'), styles: rightAlign }],
+            ['Gomer del Mes', { content: getValue('egr-gomer'), styles: rightAlign }],
+            [{ content: 'Total Manutención (Asignación - Gomer)', styles: { fontStyle: 'bold' } }, { content: formatCurrency(calculations.totalManutencion), styles: { ...rightAlign, fontStyle: 'bold' } }],
+            [{ content: 'Egresos por Colectas Especiales', styles: subheadStyle }, ''],
+            ['Ceremonial', { content: getValue('egr-ceremonial'), styles: rightAlign }],
+            ['Ofrenda Especial SdD NJG', { content: getValue('egr-ofrenda-especial-sdd'), styles: rightAlign }],
+            ['Evangelización Mundial', { content: getValue('egr-evangelizacion'), styles: rightAlign }],
+            ['Colecta de Santa Cena', { content: getValue('egr-santa-cena'), styles: rightAlign }],
+            [{ content: 'Egresos por Colectas Locales', styles: subheadStyle }, ''],
+            ['Pago de Servicios Públicos', { content: getValue('egr-servicios-publicos'), styles: rightAlign }],
+            ['Arreglos Locales', { content: getValue('egr-arreglos-locales'), styles: rightAlign }],
+            ['Mantenimiento y Conservación', { content: getValue('egr-mantenimiento'), styles: rightAlign }],
+            ['Traspaso para Construcción Local', { content: getValue('egr-traspaso-construccion'), styles: rightAlign }],
+            ['Muebles y Artículos', { content: getValue('egr-muebles'), styles: rightAlign }],
+            ['Viajes y viáticos para Ministro', { content: getValue('egr-viajes-ministro'), styles: rightAlign }],
+            ['Reuniones Ministeriales', { content: getValue('egr-reuniones-ministeriales'), styles: rightAlign }],
+            ['Atención a Ministros', { content: getValue('egr-atencion-ministros'), styles: rightAlign }],
+            ['Viajes fuera del País', { content: getValue('egr-viajes-extranjero'), styles: rightAlign }],
+            ['Actividades Locales', { content: getValue('egr-actividades-locales'), styles: rightAlign }],
+            ['Ofrendas para Ciudad LLDM', { content: getValue('ing-ciudad-lldm'), styles: rightAlign }],
+            ['Adquisición Terreno/Edificio', { content: getValue('egr-adquisicion-terreno'), styles: rightAlign }],
+        ];
+        const tableConfig = { theme: 'grid', styles: bodyStyle, headStyles: headStyle };
+        const tableStartY = startY;
+        let finalYIngresos, finalYEgresos;
+        doc.autoTable({ head: [['ENTRADAS (INGRESOS)', '']], body: ingresosData, startY: tableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: margin }, });
+        finalYIngresos = (doc as any).autoTable.previous.finalY;
+        doc.autoTable({ head: [['SALIDAS (EGRESOS)', '']], body: egresosData, startY: tableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: pageW / 2 + 1 }, });
+        finalYEgresos = (doc as any).autoTable.previous.finalY;
+        startY = Math.max(finalYIngresos, finalYEgresos) + 3;
+        const resumenData = [
+            ['Saldo Inicial del Mes', { content: formatCurrency(calculations.saldoAnterior), styles: rightAlign }],
+            ['Total Ingresos del Mes', { content: formatCurrency(calculations.totalIngresos), styles: rightAlign }],
+            [{ content: 'Total Disponible del Mes', styles: { fontStyle: 'bold' } }, { content: formatCurrency(calculations.totalDisponible), styles: { ...rightAlign, fontStyle: 'bold' } }],
+            ['Total Salidas del Mes', { content: formatCurrency(calculations.totalSalidas), styles: rightAlign }],
+            [{ content: 'Utilidad o Remanente', styles: { fontStyle: 'bold', fillColor: '#e0e7ff' } }, { content: formatCurrency(calculations.remanente), styles: { ...rightAlign, fontStyle: 'bold', fillColor: '#e0e7ff' } }],
+        ];
+        const distribucionData = [
+            ['Dirección General (Diezmos de Diezmos)', { content: getValue('dist-direccion'), styles: rightAlign }],
+            ['Tesorería (Cuenta de Remanentes)', { content: getValue('dist-tesoreria'), styles: rightAlign }],
+            ['Pro-Construcción', { content: getValue('dist-pro-construccion'), styles: rightAlign }],
+            ['Otros', { content: getValue('dist-otros'), styles: rightAlign }],
+        ];
+        if (startY > pageH - 65) { doc.addPage(); startY = margin; }
+        const summaryTableStartY = startY;
+        let finalYResumen, finalYDistribucion;
+        doc.autoTable({ head: [['RESUMEN Y CIERRE', '']], body: resumenData, startY: summaryTableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: margin }, });
+        finalYResumen = (doc as any).autoTable.previous.finalY;
+        doc.autoTable({ head: [['SALDO DEL REMANENTE DISTRIBUIDO A:', '']], body: distribucionData, startY: summaryTableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: pageW / 2 + 1 }, });
+        finalYDistribucion = (doc as any).autoTable.previous.finalY;
+        startY = Math.max(finalYResumen, finalYDistribucion) + 10;
+        if (startY > pageH - 55) { doc.addPage(); startY = margin; }
+        doc.autoTable({
+            startY,
+            body: [
+                [{ content: 'Comisión Local de Finanzas:', colSpan: 3, styles: { fontStyle: 'bold', halign: 'center' } }],
+                ['\n\n_________________________', '\n\n_________________________', '\n\n_________________________'],
+                [getText('comision-nombre-1') || 'Firma 1', getText('comision-nombre-2') || 'Firma 2', getText('comision-nombre-3') || 'Firma 3'],
+                [{ content: '', colSpan: 3, styles: { cellPadding: 4 } }],
+                ['\n\n_________________________', '\n\n_________________________', ''],
+                [`Firma Ministro: ${getText('nombre-ministro')}`, `Firma Tesorero(a) Local`, ''],
+            ],
+            theme: 'plain', styles: { fontSize: 9, halign: 'center' }
+        });
+        
+        const mes = getText('mes-reporte') || 'Mes';
+        const anio = getText('ano-reporte') || 'Año';
+        const iglesia = getText('nombre-iglesia') || 'Iglesia';
+        const pdfFileName = `Informe-Mensual_${mes}-${anio}_${iglesia.replace(/ /g, '_')}.pdf`;
+
+        return { blob: doc.output('blob'), fileName: pdfFileName };
+    };
+
+    const processPdf = async (pdfGenerator: () => { blob: Blob, fileName: string }) => {
+        setIsGenerating(true);
+        try {
+            const { blob, fileName } = pdfGenerator();
+            
+            // Create a link and click it to download the file
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+
+            // Upload to Supabase
+            if (!supabase) {
+                alert(`Informe "${fileName}" generado y descargado. La conexión a la nube no está activa para guardarlo automáticamente.`);
+            } else {
+                 await uploadFile('reportes-mensuales', fileName, blob, true);
+                 alert(`Informe "${fileName}" generado, descargado y guardado en la nube exitosamente.`);
+            }
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+             if (errorMessage.toLowerCase().includes('bucket not found')) {
+                alert(`Error al subir a la nube: El "bucket" (contenedor) 'reportes-mensuales' no fue encontrado.\n\nPor favor, vaya a su panel de Supabase -> Storage y cree un nuevo bucket PÚBLICO con ese nombre exacto.\n\nEl PDF se guardó localmente.`);
+            } else {
+                alert(`Hubo un error al generar o subir el PDF: ${errorMessage}`);
+            }
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+
+    const handleGenerateCurrentReport = () => {
+        processPdf(() => createPdfBlob(formState));
+    };
+
+    const handleExportSavedReport = (report: MonthlyReport) => {
+        processPdf(() => createPdfBlob(report.formData));
+    };
 
     const handleClearForm = () => {
         if (window.confirm('¿Estás seguro de que quieres limpiar todos los campos?')) {
@@ -204,173 +454,10 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
     const sortedReports = useMemo(() => {
         return [...savedReports].sort((a, b) => {
             const dateA = new Date(a.year, a.month - 1);
-            const dateB = new Date(b.year, a.month - 1);
+            const dateB = new Date(b.year, b.month - 1);
             return dateB.getTime() - dateA.getTime();
         });
     }, [savedReports]);
-
-    const generateAndSavePdf = async () => {
-        setIsGenerating(true);
-        try {
-            const { jsPDF } = (window as any).jspdf;
-            const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
-            // ... (PDF generation logic remains the same)
-            const pageW = doc.internal.pageSize.getWidth();
-            const pageH = doc.internal.pageSize.getHeight();
-            const margin = 10;
-            let startY = margin;
-            const getText = (key: keyof MonthlyReportFormState) => formState[key] || '';
-            const getValue = (key: keyof MonthlyReportFormState) => formatCurrency(getNumericValue(key));
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(12);
-            doc.text("IGLESIA DEL DIOS VIVO COLUMNA Y APOYO DE LA VERDAD", pageW / 2, startY + 5, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(11);
-            doc.text("La Luz del Mundo", pageW / 2, startY + 10, { align: 'center' });
-            doc.setFontSize(10);
-            doc.text("MINISTERIO DE ADMINISTRACIÓN FINANCIERA", pageW / 2, startY + 16, { align: 'center' });
-            doc.setFont('helvetica', 'bold');
-            doc.text("INFORMACIÓN FINANCIERA MENSUAL", pageW / 2, startY + 22, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            doc.text(`Jurisdicción Nicaragua, C.A.`, pageW / 2, startY + 27, { align: 'center' });
-            startY += 35;
-            const bodyStyle = { fontSize: 8, cellPadding: 1, lineColor: '#000', lineWidth: 0.1 };
-            const headStyle = { fontSize: 8, fontStyle: 'bold', fillColor: '#f0f0f0', textColor: '#333', halign: 'center', lineColor: '#000', lineWidth: 0.1 };
-            const rightAlign = { halign: 'right' };
-            const subheadStyle = { fontStyle: 'bold', fillColor: '#ffffff' };
-            doc.autoTable({
-                startY: startY,
-                body: [
-                    [{ content: 'DATOS DE ESTE INFORME', colSpan: 4, styles: headStyle }],
-                    ['DEL MES DE:', getText('mes-reporte'), 'DEL AÑO:', getText('ano-reporte')],
-                    ['CLAVE IGLESIA:', getText('clave-iglesia'), 'NOMBRE IGLESIA:', getText('nombre-iglesia')],
-                    ['DISTRITO:', getText('distrito'), 'DEPARTAMENTO:', getText('departamento')],
-                    ['NOMBRE MINISTRO:', getText('nombre-ministro'), 'GRADO:', getText('grado-ministro')],
-                    ['TELÉFONO:', getText('tel-ministro'), 'MIEMBROS ACTIVOS:', getText('miembros-activos')],
-                ],
-                theme: 'grid', styles: { ...bodyStyle, fontSize: 9, cellPadding: 1.5 }, columnStyles: { 0: { fontStyle: 'bold' }, 2: { fontStyle: 'bold' } }
-            });
-            startY = (doc as any).autoTable.previous.finalY + 3;
-            const ingresosData = [
-                [{ content: 'Ingresos por Ofrendas', styles: subheadStyle }, ''],
-                ['Diezmos', { content: getValue('ing-diezmos'), styles: rightAlign }],
-                ['Ofrendas Ordinarias', { content: getValue('ing-ofrendas-ordinarias'), styles: rightAlign }],
-                ['Primicias', { content: getValue('ing-primicias'), styles: rightAlign }],
-                ['Ayuda al Encargado', { content: getValue('ing-ayuda-encargado'), styles: rightAlign }],
-                [{ content: 'Ingresos por Colectas Especiales', styles: subheadStyle }, ''],
-                ['Ceremonial', { content: getValue('ing-ceremonial'), styles: rightAlign }],
-                ['Ofrenda Especial SdD NJG', { content: getValue('ing-ofrenda-especial-sdd'), styles: rightAlign }],
-                ['Evangelización Mundial', { content: getValue('ing-evangelizacion'), styles: rightAlign }],
-                ['Colecta de Santa Cena', { content: getValue('ing-santa-cena'), styles: rightAlign }],
-                [{ content: 'Ingresos por Colectas Locales', styles: subheadStyle }, ''],
-                ['Pago de Servicios Públicos', { content: getValue('ing-servicios-publicos'), styles: rightAlign }],
-                ['Arreglos Locales', { content: getValue('ing-arreglos-locales'), styles: rightAlign }],
-                ['Mantenimiento y Conservación', { content: getValue('ing-mantenimiento'), styles: rightAlign }],
-                ['Construcción Local', { content: getValue('ing-construccion-local'), styles: rightAlign }],
-                ['Muebles y Artículos', { content: getValue('ing-muebles'), styles: rightAlign }],
-                ['Viajes y viáticos para Ministro', { content: getValue('ing-viajes-ministro'), styles: rightAlign }],
-                ['Reuniones Ministeriales', { content: getValue('ing-reuniones-ministeriales'), styles: rightAlign }],
-                ['Atención a Ministros', { content: getValue('ing-atencion-ministros'), styles: rightAlign }],
-                ['Viajes fuera del País', { content: getValue('ing-viajes-extranjero'), styles: rightAlign }],
-                ['Actividades Locales', { content: getValue('ing-actividades-locales'), styles: rightAlign }],
-                ['Ofrendas para Ciudad LLDM', { content: getValue('ing-ciudad-lldm'), styles: rightAlign }],
-                ['Adquisición Terreno/Edificio', { content: getValue('ing-adquisicion-terreno'), styles: rightAlign }],
-            ];
-            const egresosData = [
-                [{ content: 'Manutención del Ministro', styles: subheadStyle }, ''],
-                ['Asignación Autorizada', { content: getValue('egr-asignacion'), styles: rightAlign }],
-                ['Gomer del Mes', { content: getValue('egr-gomer'), styles: rightAlign }],
-                [{ content: 'Total Manutención (Asignación - Gomer)', styles: { fontStyle: 'bold' } }, { content: formatCurrency(calculations.totalManutencion), styles: { ...rightAlign, fontStyle: 'bold' } }],
-                [{ content: 'Egresos por Colectas Especiales', styles: subheadStyle }, ''],
-                ['Ceremonial', { content: getValue('egr-ceremonial'), styles: rightAlign }],
-                ['Ofrenda Especial SdD NJG', { content: getValue('egr-ofrenda-especial-sdd'), styles: rightAlign }],
-                ['Evangelización Mundial', { content: getValue('egr-evangelizacion'), styles: rightAlign }],
-                ['Colecta de Santa Cena', { content: getValue('egr-santa-cena'), styles: rightAlign }],
-                [{ content: 'Egresos por Colectas Locales', styles: subheadStyle }, ''],
-                ['Pago de Servicios Públicos', { content: getValue('egr-servicios-publicos'), styles: rightAlign }],
-                ['Arreglos Locales', { content: getValue('egr-arreglos-locales'), styles: rightAlign }],
-                ['Mantenimiento y Conservación', { content: getValue('egr-mantenimiento'), styles: rightAlign }],
-                ['Traspaso para Construcción Local', { content: getValue('egr-traspaso-construccion'), styles: rightAlign }],
-                ['Muebles y Artículos', { content: getValue('egr-muebles'), styles: rightAlign }],
-                ['Viajes y viáticos para Ministro', { content: getValue('egr-viajes-ministro'), styles: rightAlign }],
-                ['Reuniones Ministeriales', { content: getValue('egr-reuniones-ministeriales'), styles: rightAlign }],
-                ['Atención a Ministros', { content: getValue('egr-atencion-ministros'), styles: rightAlign }],
-                ['Viajes fuera del País', { content: getValue('egr-viajes-extranjero'), styles: rightAlign }],
-                ['Actividades Locales', { content: getValue('egr-actividades-locales'), styles: rightAlign }],
-                ['Ofrendas para Ciudad LLDM', { content: getValue('egr-ciudad-lldm'), styles: rightAlign }],
-                ['Adquisición Terreno/Edificio', { content: getValue('egr-adquisicion-terreno'), styles: rightAlign }],
-            ];
-            const tableConfig = { theme: 'grid', styles: bodyStyle, headStyles: headStyle };
-            const tableStartY = startY;
-            let finalYIngresos, finalYEgresos;
-            doc.autoTable({ head: [['ENTRADAS (INGRESOS)', '']], body: ingresosData, startY: tableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: margin }, });
-            finalYIngresos = (doc as any).autoTable.previous.finalY;
-            doc.autoTable({ head: [['SALIDAS (EGRESOS)', '']], body: egresosData, startY: tableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: pageW / 2 + 1 }, });
-            finalYEgresos = (doc as any).autoTable.previous.finalY;
-            startY = Math.max(finalYIngresos, finalYEgresos) + 3;
-            const resumenData = [
-                ['Saldo Inicial del Mes', { content: formatCurrency(calculations.saldoAnterior), styles: rightAlign }],
-                ['Total Ingresos del Mes', { content: formatCurrency(calculations.totalIngresos), styles: rightAlign }],
-                [{ content: 'Total Disponible del Mes', styles: { fontStyle: 'bold' } }, { content: formatCurrency(calculations.totalDisponible), styles: { ...rightAlign, fontStyle: 'bold' } }],
-                ['Total Salidas del Mes', { content: formatCurrency(calculations.totalSalidas), styles: rightAlign }],
-                [{ content: 'Utilidad o Remanente', styles: { fontStyle: 'bold', fillColor: '#e0e7ff' } }, { content: formatCurrency(calculations.remanente), styles: { ...rightAlign, fontStyle: 'bold', fillColor: '#e0e7ff' } }],
-            ];
-            const distribucionData = [
-                ['Dirección General (Diezmos de Diezmos)', { content: getValue('dist-direccion'), styles: rightAlign }],
-                ['Tesorería (Cuenta de Remanentes)', { content: getValue('dist-tesoreria'), styles: rightAlign }],
-                ['Pro-Construcción', { content: getValue('dist-pro-construccion'), styles: rightAlign }],
-                ['Otros', { content: getValue('dist-otros'), styles: rightAlign }],
-            ];
-            if (startY > pageH - 65) { doc.addPage(); startY = margin; }
-            const summaryTableStartY = startY;
-            let finalYResumen, finalYDistribucion;
-            doc.autoTable({ head: [['RESUMEN Y CIERRE', '']], body: resumenData, startY: summaryTableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: margin }, });
-            finalYResumen = (doc as any).autoTable.previous.finalY;
-            doc.autoTable({ head: [['SALDO DEL REMANENTE DISTRIBUIDO A:', '']], body: distribucionData, startY: summaryTableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: pageW / 2 + 1 }, });
-            finalYDistribucion = (doc as any).autoTable.previous.finalY;
-            startY = Math.max(finalYResumen, finalYDistribucion) + 10;
-            if (startY > pageH - 55) { doc.addPage(); startY = margin; }
-            doc.autoTable({
-                startY,
-                body: [
-                    [{ content: 'Comisión Local de Finanzas:', colSpan: 3, styles: { fontStyle: 'bold', halign: 'center' } }],
-                    ['\n\n_________________________', '\n\n_________________________', '\n\n_________________________'],
-                    [getText('comision-nombre-1') || 'Firma 1', getText('comision-nombre-2') || 'Firma 2', getText('comision-nombre-3') || 'Firma 3'],
-                    [{ content: '', colSpan: 3, styles: { cellPadding: 4 } }],
-                    ['\n\n_________________________', '\n\n_________________________', ''],
-                    [`Firma Ministro: ${getText('nombre-ministro')}`, `Firma Tesorero(a) Local`, ''],
-                ],
-                theme: 'plain', styles: { fontSize: 9, halign: 'center' }
-            });
-            
-            const mes = getText('mes-reporte') || 'Mes';
-            const anio = getText('ano-reporte') || 'Año';
-            const iglesia = getText('nombre-iglesia') || 'Iglesia';
-            const pdfFileName = `Informe-Mensual_${mes}-${anio}_${iglesia.replace(/ /g, '_')}.pdf`;
-
-            // Download PDF locally
-            doc.save(pdfFileName);
-
-            // Upload to Supabase
-            if (!supabase) {
-                alert(`Informe "${pdfFileName}" generado y descargado. La conexión a la nube no está activa para guardarlo automáticamente.`);
-            } else {
-                 const pdfBlob = doc.output('blob');
-                 await uploadFile('reportes-mensuales', pdfFileName, pdfBlob, true);
-                 alert(`Informe "${pdfFileName}" generado, descargado y guardado en la nube exitosamente.`);
-            }
-
-        } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-             if (errorMessage.toLowerCase().includes('bucket not found')) {
-                alert(`Error al subir a la nube: El "bucket" (contenedor) 'reportes-mensuales' no fue encontrado.\n\nPor favor, vaya a su panel de Supabase -> Storage y cree un nuevo bucket PÚBLICO con ese nombre exacto.\n\nEl PDF se guardó localmente.`);
-            } else {
-                alert(`Hubo un error al generar o subir el PDF: ${errorMessage}`);
-            }
-        } finally {
-            setIsGenerating(false);
-        }
-    };
     
     // Helper components for building the form
     const Field = ({ id, label, isCurrency = true }: { id: keyof MonthlyReportFormState; label: string; isCurrency?: boolean }) => (
@@ -392,8 +479,14 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
                 <h1 className="text-2xl md:text-3xl font-bold text-blue-800 dark:text-blue-400">MINISTERIO DE ADMINISTRACIÓN FINANCIERA</h1>
                 <p className="text-lg md:text-xl text-gray-600 dark:text-gray-300">Información Financiera Mensual - Jurisdicción Nicaragua, C.A.</p>
             </header>
+            
+            {supabase && (
+                <Accordion title="Informes en la Nube">
+                    <UploadedMonthlyReportsList />
+                </Accordion>
+            )}
 
-            <Accordion title="Informes Guardados">
+            <Accordion title="Informes Guardados (Local)">
                 <div className="space-y-3 max-h-60 overflow-y-auto p-1">
                     {sortedReports.length > 0 ? (
                         sortedReports.map(report => (
@@ -407,6 +500,10 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
                                         <ArrowUpOnSquareIcon className="w-4 h-4" />
                                         Cargar
                                     </button>
+                                     <button onClick={() => handleExportSavedReport(report)} disabled={isGenerating} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 transition-colors disabled:bg-gray-400">
+                                        <DocumentArrowDownIcon className="w-4 h-4" />
+                                        Exportar
+                                    </button>
                                     <button onClick={() => handleDeleteReport(report.id)} className="flex items-center gap-1 px-3 py-1.5 text-xs font-medium text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors">
                                         <TrashIcon className="w-4 h-4" />
                                         Eliminar
@@ -415,7 +512,7 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
                             </div>
                         ))
                     ) : (
-                        <p className="text-center text-gray-500 py-2 dark:text-gray-400">No hay informes guardados.</p>
+                        <p className="text-center text-gray-500 py-2 dark:text-gray-400">No hay informes guardados localmente.</p>
                     )}
                 </div>
             </Accordion>
@@ -544,7 +641,7 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
                         Limpiar Formulario
                     </button>
                     <button 
-                        onClick={generateAndSavePdf} 
+                        onClick={handleGenerateCurrentReport} 
                         disabled={isGenerating}
                         title="Generar y descargar PDF"
                         className="w-full flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed sm:col-span-2 lg:col-span-1"

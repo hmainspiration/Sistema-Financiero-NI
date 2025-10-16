@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Tab, WeeklyRecord, Member, Formulas, MonthlyReport, ChurchInfo } from '../types';
 import Header from '../components/layout/Header';
-import BottomNav from '../components/layout/BottomNav';
+// import BottomNav from '../components/layout/BottomNav'; // No longer used
 import RegistroOfrendasTab from '../components/tabs/RegistroOfrendasTab';
 import ResumenFinancieroTab from '../components/tabs/ResumenFinancieroTab';
 import SemanasRegistradasTab from '../components/tabs/SemanasRegistradasTab';
@@ -10,6 +10,8 @@ import AdminPanelTab from '../components/tabs/AdminPanelTab';
 import InformeMensualTab from '../components/tabs/InformeMensualTab';
 import { useSupabase } from '../context/SupabaseContext';
 import { MONTH_NAMES } from '../constants';
+import { HomeIcon, ChartBarIcon, CalendarDaysIcon, ChartPieIcon, Cog6ToothIcon, DocumentTextIcon } from '@heroicons/react/24/outline';
+
 
 // Define props based on what App.tsx passes
 interface AppData {
@@ -40,6 +42,15 @@ interface MainAppProps {
   theme: string;
   toggleTheme: () => void;
 }
+
+const navItems = [
+  { id: 'register', label: 'Registro', icon: HomeIcon },
+  { id: 'summary', label: 'Resumen', icon: ChartBarIcon },
+  { id: 'history', label: 'Semanas', icon: CalendarDaysIcon },
+  { id: 'monthly', label: 'Mensual', icon: ChartPieIcon },
+  { id: 'informe', label: 'Informe', icon: DocumentTextIcon },
+  { id: 'admin', label: 'Admin', icon: Cog6ToothIcon },
+];
 
 const MainApp: React.FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, handlers, theme, toggleTheme }) => {
   const [activeTab, setActiveTab] = useState<Tab>('register');
@@ -195,14 +206,21 @@ const MainApp: React.FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, hand
 
   return (
     <div className="flex flex-col h-screen">
-      {/* FIX: Corrected component props to match definition. */}
-      <Header onLogout={onLogout} onSwitchVersion={onSwitchVersion} showSwitchVersion={true} theme={theme} toggleTheme={toggleTheme} />
-      <main className="flex-grow p-4 pb-24 overflow-y-auto">
+      <Header 
+        onLogout={onLogout} 
+        onSwitchVersion={onSwitchVersion} 
+        showSwitchVersion={true} 
+        theme={theme} 
+        toggleTheme={toggleTheme}
+        navItems={navItems}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab as (tab: string) => void}
+      />
+      <main className="flex-grow p-4 pb-4 overflow-y-auto bg-gray-50 dark:bg-gray-900">
         <div className="max-w-4xl mx-auto">
          {renderContent()}
         </div>
       </main>
-      <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
        {isSaving && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                 <div className="bg-white p-6 rounded-lg flex items-center gap-4 dark:bg-gray-800">
