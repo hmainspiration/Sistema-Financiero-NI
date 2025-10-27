@@ -59,15 +59,21 @@ export const SupabaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const uploadFile = async (bucket: string, fileName: string, file: Blob, upsert: boolean = true) => {
         if (!supabase) throw new Error("Supabase client not initialized.");
-        const { data, error } = await supabase.storage.from(bucket).upload(fileName, file, { cacheControl: '3600', upsert });
-        if (error) throw error;
+        const { data, error: uploadError } = await supabase.storage.from(bucket).upload(fileName, file, { cacheControl: '3600', upsert });
+        if (uploadError) {
+            setError(uploadError.message);
+            throw uploadError;
+        }
         return data;
     };
 
     const listFiles = async (bucket: string): Promise<any[] | null> => {
         if (!supabase) throw new Error("Supabase client not initialized.");
-        const { data, error } = await supabase.storage.from(bucket).list(undefined, { limit: 100, offset: 0, sortBy: { column: 'created_at', order: 'desc' } });
-        if (error) throw error;
+        const { data, error: listError } = await supabase.storage.from(bucket).list(undefined, { limit: 100, offset: 0, sortBy: { column: 'created_at', order: 'desc' } });
+        if (listError) {
+            setError(listError.message);
+            throw listError;
+        }
         return data;
     };
     
@@ -81,29 +87,41 @@ export const SupabaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const fetchItems = useCallback(async (tableName: string) => {
         if (!supabase) throw new Error("Supabase client not initialized.");
-        const { data, error } = await supabase.from(tableName).select('*').order('name', { ascending: true });
-        if (error) throw error;
+        const { data, error: fetchError } = await supabase.from(tableName).select('*').order('name', { ascending: true });
+        if (fetchError) {
+            setError(fetchError.message);
+            throw fetchError;
+        }
         return data;
     }, [supabase]);
 
     const addItem = useCallback(async (tableName: string, item: object) => {
         if (!supabase) throw new Error("Supabase client not initialized.");
-        const { data, error } = await supabase.from(tableName).insert([item]).select();
-        if (error) throw error;
+        const { data, error: addError } = await supabase.from(tableName).insert([item]).select();
+        if (addError) {
+            setError(addError.message);
+            throw addError;
+        }
         return data[0];
     }, [supabase]);
 
     const updateItem = useCallback(async (tableName: string, id: string, updates: object) => {
         if (!supabase) throw new Error("Supabase client not initialized.");
-        const { data, error } = await supabase.from(tableName).update(updates).eq('id', id).select();
-        if (error) throw error;
+        const { data, error: updateError } = await supabase.from(tableName).update(updates).eq('id', id).select();
+        if (updateError) {
+            setError(updateError.message);
+            throw updateError;
+        }
         return data[0];
     }, [supabase]);
 
     const deleteItem = useCallback(async (tableName: string, id: string) => {
         if (!supabase) throw new Error("Supabase client not initialized.");
-        const { error } = await supabase.from(tableName).delete().eq('id', id);
-        if (error) throw error;
+        const { error: deleteError } = await supabase.from(tableName).delete().eq('id', id);
+        if (deleteError) {
+            setError(deleteError.message);
+            throw deleteError;
+        }
     }, [supabase]);
 
 

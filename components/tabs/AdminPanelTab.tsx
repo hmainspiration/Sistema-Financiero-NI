@@ -8,13 +8,33 @@ const SupabaseStatusIndicator: React.FC = () => {
     const { supabase, error } = useSupabase();
 
     if (error) {
+        const isCorsError = error.toLowerCase().includes('failed to fetch');
+
         return (
             <div className="p-4 text-sm text-left text-red-800 bg-red-100 border border-red-200 rounded-lg dark:bg-red-900/30 dark:text-red-300 dark:border-red-500/50" style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="w-5 h-5 mt-0.5 flex-shrink-0" />
                   <div>
                     <p className="font-bold">Error de conexión a la Nube (Supabase)</p>
-                    <p className="mt-2">{error}</p>
+                    {isCorsError ? (
+                        <div className="mt-2 space-y-2">
+                            <p><strong>Error detectado:</strong> Falló la conexión (TypeError: Failed to fetch). Este es comúnmente un <strong>problema de CORS</strong>.</p>
+                            <p>CORS es un mecanismo de seguridad del navegador que impide que una página web solicite recursos de un dominio diferente. Para solucionarlo, debe autorizar explícitamente el dominio de esta aplicación en la configuración de su proyecto de Supabase.</p>
+                            <p className="font-semibold mt-3">Siga estos pasos para solucionarlo:</p>
+                            <ol className="list-decimal list-inside space-y-1 pl-2">
+                                <li>Vaya a su panel de control de Supabase en <a href="https://supabase.com/" target="_blank" rel="noopener noreferrer" className="text-blue-600 underline dark:text-blue-400">supabase.com</a>.</li>
+                                <li>Seleccione su proyecto.</li>
+                                <li>En el menú de la izquierda, haga clic en el ícono de <strong>Configuración del Proyecto</strong> (engranaje).</li>
+                                <li>Seleccione <strong>API</strong> en la lista de configuraciones.</li>
+                                <li>Busque la sección <strong>Configuración de CORS</strong> (Cross-Origin Resource Sharing).</li>
+                                <li>En el campo de texto, agregue una nueva línea con <strong className="font-mono bg-gray-200 dark:bg-gray-600 px-1 rounded">*</strong> (un asterisco).</li>
+                                <li>Haga clic en <strong>Guardar</strong>.</li>
+                            </ol>
+                            <p className="mt-3 text-xs"><strong>Nota de Seguridad:</strong> Usar <code className="font-mono">*</code> permite el acceso desde cualquier dominio. Para producción, es más seguro reemplazar el asterisco con la URL específica donde se alojará su aplicación.</p>
+                        </div>
+                    ) : (
+                        <p className="mt-2">{error}</p>
+                    )}
                   </div>
                 </div>
             </div>

@@ -381,8 +381,19 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
                  alert(`Informe "${fileName}" generado, descargado y guardado en la nube exitosamente.`);
             }
         } catch (error) {
-            const errorMessage = error instanceof Error ? error.message : String(error);
-             if (errorMessage.toLowerCase().includes('bucket not found')) {
+            console.error("PDF upload failed:", error);
+            let errorMessage = 'Ocurrió un error desconocido.';
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (error && typeof error === 'object' && 'message' in error) {
+                errorMessage = String((error as { message: string }).message);
+            } else {
+                errorMessage = String(error);
+            }
+            
+            if (errorMessage.toLowerCase().includes('failed to fetch')) {
+                 alert(`Error al subir a la nube: Falló la conexión con el servidor. Esto puede ser un problema de CORS o de red. Verifique la configuración de CORS en su panel de Supabase y su conexión a internet.\n\nEl PDF se guardó localmente.`);
+            } else if (errorMessage.toLowerCase().includes('bucket not found')) {
                 alert(`Error al subir a la nube: El "bucket" (contenedor) 'reportes-mensuales' no fue encontrado.\n\nPor favor, vaya a su panel de Supabase -> Storage y cree un nuevo bucket PÚBLICO con ese nombre exacto.\n\nEl PDF se guardó localmente.`);
             } else {
                 alert(`Hubo un error al generar o subir el PDF: ${errorMessage}`);

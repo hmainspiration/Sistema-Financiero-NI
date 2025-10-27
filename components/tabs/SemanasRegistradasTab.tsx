@@ -336,8 +336,19 @@ const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, 
             await supabase.uploadFile(bucketName, fileName, blob, true);
             alert(`Reporte semanal guardado exitosamente en la nube: ${fileName}`);
         } catch(err) {
-            const errorMessage = err instanceof Error ? err.message : String(err);
-            if (errorMessage.toLowerCase().includes('bucket not found')) {
+            console.error("Upload from History tab failed:", err);
+            let errorMessage = 'Ocurrió un error desconocido.';
+            if (err instanceof Error) {
+                errorMessage = err.message;
+            } else if (err && typeof err === 'object' && 'message' in err) {
+                errorMessage = String((err as { message: string }).message);
+            } else {
+                errorMessage = String(err);
+            }
+
+            if (errorMessage.toLowerCase().includes('failed to fetch')) {
+                alert('Error al subir a Supabase: Falló la conexión con el servidor. Esto puede ser un problema de CORS o de red. Verifique la configuración de CORS en su panel de Supabase y su conexión a internet.');
+            } else if (errorMessage.toLowerCase().includes('bucket not found')) {
                 alert(`Error: El "bucket" (contenedor) de almacenamiento en la nube no fue encontrado.\n\nPor favor, vaya a su panel de Supabase -> Storage y cree un nuevo bucket PÚBLICO con el nombre exacto: '${bucketName}'`);
             } else {
                 alert(`Error al subir a Supabase: ${errorMessage}.`);

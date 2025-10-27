@@ -96,19 +96,9 @@ const App: React.FC = () => {
                     setCategories(fetchedCategories.map((c: any) => c.name));
                     
                 } catch (error) {
-                    const errorObj = error as any;
-                    let errorMessage = error instanceof Error ? error.message : String(error);
-
-                    if (errorObj?.code === '42P01') {
-                        errorMessage = `Las tablas 'members' o 'categories' no existen en la base de datos. Por favor, siga las instrucciones para crearlas en su panel de Supabase.`;
-                    } else if (errorObj?.code === '42703') {
-                        errorMessage = `Una de las tablas ('members' o 'categories') no tiene la columna 'name'. Verifique la estructura de sus tablas en Supabase.`;
-                    } else if (typeof navigator !== 'undefined' && !navigator.onLine) {
-                        errorMessage = `No hay conexión a internet. No se pueden cargar los datos de la nube.`;
-                    }
-                    
-                    console.error("Failed to fetch initial data from Supabase:", error);
-                    alert(`No se pudo cargar la lista de miembros y categorías desde la nube. Se usarán los datos locales por ahora.\n\nError: ${errorMessage}\n\nVerifique su conexión y la configuración de Supabase.`);
+                    // FIX: Improved error logging to show a clear message instead of "[object Object]".
+                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    console.error("Failed to fetch initial data from Supabase:", errorMessage);
                     
                     // Fallback to constants if fetch fails
                     console.warn("Falling back to initial constant data due to Supabase fetch error.");

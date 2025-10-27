@@ -377,9 +377,23 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
             await uploadFile('reportes-semanales', fileName, blob, true);
             return { success: true, fileName };
         } catch (err) {
-            const error = err instanceof Error ? err : new Error(String(err));
-            console.error("Upload failed:", error);
-            return { success: false, error };
+            console.error("Upload failed:", err);
+            let errorMessage = 'Ocurrió un error desconocido durante la subida.';
+            if (err instanceof Error) {
+                errorMessage = err.message;
+            } else if (err && typeof err === 'object' && 'message' in err) {
+                errorMessage = String((err as { message: string }).message);
+            } else {
+                errorMessage = String(err);
+            }
+
+            if (errorMessage.toLowerCase().includes('failed to fetch')) {
+                errorMessage = 'Falló la conexión con el servidor al intentar subir el archivo. Esto puede ser un problema de CORS o de red. Verifique la configuración de CORS en su panel de Supabase y su conexión a internet.';
+            } else if (errorMessage.toLowerCase().includes('bucket not found')) {
+                errorMessage = `El contenedor de almacenamiento ('bucket') 'reportes-semanales' no fue encontrado en Supabase. Por favor, asegúrese de que exista y sea público.`;
+            }
+
+            return { success: false, error: new Error(errorMessage) };
         }
       };
 
