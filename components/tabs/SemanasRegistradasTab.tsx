@@ -39,7 +39,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ members, onSelect
         value={inputValue}
         onChange={handleChange}
         placeholder="Escriba el nombre del miembro..."
-        className="w-full p-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600 focus:border-transparent dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
+        className="w-full p-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600 focus:border-transparent text-gray-900 placeholder-gray-500 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:placeholder-gray-400"
       />
       {suggestions.length > 0 && (
         <ul className="absolute z-20 w-full mt-1 overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 dark:bg-gray-800 dark:border-gray-600">
@@ -47,7 +47,7 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ members, onSelect
             <li
               key={member.id}
               onClick={() => handleSelect(member)}
-              className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+              className="px-4 py-2 cursor-pointer hover:bg-gray-100 text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700"
             >
               {member.name}
             </li>
@@ -385,20 +385,20 @@ const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, 
             <main className="p-6 overflow-y-auto space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium">Fecha</label>
-                    <input type="text" value={`${tempRecord.day}/${tempRecord.month}/${tempRecord.year}`} readOnly className="mt-1 w-full p-2 bg-gray-100 dark:bg-gray-700 border rounded-md" />
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Fecha</label>
+                    <input type="text" value={`${tempRecord.day}/${tempRecord.month}/${tempRecord.year}`} readOnly className="mt-1 w-full p-2 bg-gray-100 text-gray-700 dark:text-gray-300 dark:bg-gray-700 border rounded-md" />
                   </div>
                   <div>
-                    <label htmlFor="minister" className="block text-sm font-medium">Ministro</label>
-                    <input type="text" id="minister" name="minister" value={tempRecord.minister} onChange={handleModalInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-md dark:bg-gray-600 dark:border-gray-500" />
+                    <label htmlFor="minister" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ministro</label>
+                    <input type="text" id="minister" name="minister" value={tempRecord.minister} onChange={handleModalInputChange} className="mt-1 w-full p-2 border border-gray-300 rounded-md text-gray-900 dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200" />
                   </div>
               </div>
               <div className="p-4 border rounded-lg dark:border-gray-700">
-                <h4 className="font-semibold mb-2">Añadir Ofrenda</h4>
+                <h4 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">Añadir Ofrenda</h4>
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                     <AutocompleteInput members={members} onSelect={setSelectedMember} />
-                    <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Cantidad C$" className="w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-600 dark:border-gray-500"/>
-                    <select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-600 dark:border-gray-500">
+                    <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Cantidad C$" className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200 dark:placeholder-gray-400"/>
+                    <select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 dark:bg-gray-600 dark:border-gray-500 dark:text-gray-200">
                         {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
                     <button onClick={handleAddOfferingInModal} className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700">
@@ -409,23 +409,23 @@ const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, 
               </div>
 
               <div>
-                <h4 className="font-semibold mb-2">Ofrendas ({tempRecord.offerings.length})</h4>
+                <h4 className="font-semibold mb-2 text-gray-800 dark:text-gray-200">Ofrendas ({tempRecord.offerings.length})</h4>
                 <div className="space-y-2 max-h-60 overflow-y-auto border rounded-lg p-2 dark:border-gray-700">
                     {tempRecord.offerings.length > 0 ? [...tempRecord.offerings].reverse().map(offering => (
                         <div key={offering.id} className="flex justify-between items-center p-2 bg-gray-50 rounded-md dark:bg-gray-700/50">
                             <div>
-                                <p className="font-medium">{offering.memberName}</p>
+                                <p className="font-medium text-gray-900 dark:text-gray-100">{offering.memberName}</p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400">{offering.category} - C$ {offering.amount.toFixed(2)}</p>
                             </div>
                             <button onClick={() => handleRemoveOfferingInModal(offering.id)} className="text-red-500 hover:text-red-700 p-1"><Trash2 className="w-4 h-4" /></button>
                         </div>
-                    )) : <p className="text-center text-gray-500 py-4">No hay ofrendas.</p>}
+                    )) : <p className="text-center text-gray-500 py-4 dark:text-gray-400">No hay ofrendas.</p>}
                 </div>
               </div>
             </main>
 
             <footer className="flex justify-end gap-4 p-4 border-t dark:border-gray-700 flex-shrink-0">
-              <button onClick={handleCloseModal} className="px-4 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500">Cancelar</button>
+              <button onClick={handleCloseModal} className="px-4 py-2 text-gray-800 bg-gray-200 rounded-lg hover:bg-gray-300 dark:text-white dark:bg-gray-600 dark:hover:bg-gray-500">Cancelar</button>
               <button onClick={handleSaveChanges} className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700">Guardar Cambios</button>
             </footer>
           </div>

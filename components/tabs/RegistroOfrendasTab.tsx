@@ -30,11 +30,11 @@ const AutocompleteInput: React.FC<{ members: Member[], onSelect: (member: Member
 
     return (
         <div className="relative">
-            <input type="text" value={inputValue} onChange={handleChange} placeholder="Buscar o escribir nombre..." className="w-full p-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
+            <input type="text" value={inputValue} onChange={handleChange} placeholder="Buscar o escribir nombre..." className="w-full p-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600 focus:border-transparent text-gray-900 placeholder-gray-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
             {suggestions.length > 0 && (
                 <ul className="absolute z-10 w-full mt-1 overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 dark:bg-gray-800 dark:border-gray-600">
                     {suggestions.map(member => (
-                        <li key={member.id} onClick={() => handleSelect(member)} className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">
+                        <li key={member.id} onClick={() => handleSelect(member)} className="px-4 py-2 cursor-pointer hover:bg-gray-100 text-gray-900 dark:text-gray-200 dark:hover:bg-gray-700">
                             {member.name}
                         </li>
                     ))}
@@ -167,17 +167,17 @@ const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <div>
                         <label htmlFor="day-reg" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Día</label>
-                        <input type="number" name="day" id="day-reg" value={dateInfo.day} onChange={e => setDateInfo({...dateInfo, day: e.target.value})} className="mt-1 block w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+                        <input type="number" name="day" id="day-reg" value={dateInfo.day} onChange={e => setDateInfo({...dateInfo, day: e.target.value})} className="mt-1 block w-full p-2 border border-gray-300 rounded-md text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
                     </div>
                     <div>
                         <label htmlFor="month-reg" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Mes</label>
-                        <select name="month" id="month-reg" value={dateInfo.month} onChange={e => setDateInfo({...dateInfo, month: e.target.value})} className="mt-1 block w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600">
+                        <select name="month" id="month-reg" value={dateInfo.month} onChange={e => setDateInfo({...dateInfo, month: e.target.value})} className="mt-1 block w-full p-2 border border-gray-300 rounded-md text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                             {MONTH_NAMES.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}
                         </select>
                     </div>
                     <div>
                         <label htmlFor="year-reg" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Año</label>
-                        <input type="number" name="year" id="year-reg" value={dateInfo.year} onChange={e => setDateInfo({...dateInfo, year: e.target.value})} className="mt-1 block w-full p-2 border border-gray-300 rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+                        <input type="number" name="year" id="year-reg" value={dateInfo.year} onChange={e => setDateInfo({...dateInfo, year: e.target.value})} className="mt-1 block w-full p-2 border border-gray-300 rounded-md text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
                     </div>
                 </div>
                 <button onClick={handleCreateRecord} className="w-full mt-6 py-3 font-bold text-white text-lg transition duration-300 bg-blue-600 rounded-lg hover:bg-blue-700">
@@ -199,14 +199,14 @@ const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
                             <div>
                                 <h3 className="text-xl font-bold text-indigo-900 mb-3 dark:text-indigo-300">Agregar Nuevo Miembro</h3>
                                 <div className="flex gap-2">
-                                    <input type="text" value={newMemberName} onChange={e => setNewMemberName(e.target.value)} placeholder="Nombre completo" className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                                    <input type="text" value={newMemberName} onChange={e => setNewMemberName(e.target.value)} placeholder="Nombre completo" className="flex-grow p-2 border rounded-md text-gray-900 placeholder-gray-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
                                     <button onClick={handleAddNewMember} disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400">Guardar</button>
                                 </div>
                             </div>
                             <div className="border-t pt-6 dark:border-gray-700">
                                 <h3 className="text-xl font-bold text-indigo-900 mb-3 dark:text-indigo-300">Agregar Nueva Categoría</h3>
                                 <div className="flex gap-2">
-                                    <input type="text" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="Nombre de categoría" className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                                    <input type="text" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="Nombre de categoría" className="flex-grow p-2 border rounded-md text-gray-900 placeholder-gray-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
                                     <button onClick={handleAddNewCategory} disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400">Guardar</button>
                                 </div>
                             </div>
@@ -239,8 +239,8 @@ const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
                             </div>
                         )}
                     </div>
-                    <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Cantidad C$" className="w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600"/>
-                    <select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600">
+                    <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Cantidad C$" className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
+                    <select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg text-gray-900 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200">
                         {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
                     <button onClick={handleAddOffering} className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700">
@@ -256,7 +256,7 @@ const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
                         [...currentRecord.offerings].reverse().map(offering => (
                             <div key={offering.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg dark:bg-gray-700/50">
                                 <div>
-                                    <p className="font-semibold">{offering.memberName}</p>
+                                    <p className="font-semibold text-gray-900 dark:text-gray-100">{offering.memberName}</p>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">{offering.category} - C$ {offering.amount.toFixed(2)}</p>
                                 </div>
                                 <button onClick={() => handleRemoveOffering(offering.id)} className="text-red-500 hover:text-red-700 p-2 dark:text-red-400 dark:hover:text-red-300"><Trash2 className="w-5 h-5" /></button>

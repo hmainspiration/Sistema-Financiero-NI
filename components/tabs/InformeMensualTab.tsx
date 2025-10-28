@@ -353,21 +353,28 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
         if (startY > pageH - 65) { doc.addPage(); startY = margin; }
         const summaryTableStartY = startY;
         let finalYResumen, finalYDistribucion;
-        doc.autoTable({ head: [['RESUMEN Y CIERRE', '']], body: resumenData, startY: summaryTableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: margin }, });
-        finalYResumen = (doc as any).autoTable.previous.finalY;
-        doc.autoTable({ head: [['SALDO DEL REMANENTE DISTRIBUIDO A:', '']], body: distribucionData, startY: summaryTableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: pageW / 2 + 1 }, });
+        // SWAPPED TABLES
+        doc.autoTable({ head: [['SALDO DEL REMANENTE DISTRIBUIDO A:', '']], body: distribucionData, startY: summaryTableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: margin }, });
         finalYDistribucion = (doc as any).autoTable.previous.finalY;
-        startY = Math.max(finalYResumen, finalYDistribucion) + 10;
+        doc.autoTable({ head: [['RESUMEN Y CIERRE', '']], body: resumenData, startY: summaryTableStartY, ...tableConfig, tableWidth: (pageW / 2) - margin - 1, margin: { left: pageW / 2 + 1 }, });
+        finalYResumen = (doc as any).autoTable.previous.finalY;
+        startY = Math.max(finalYResumen, finalYDistribucion) + 15;
+        
+        // RESTRUCTURED SIGNATURES
         if (startY > pageH - 55) { doc.addPage(); startY = margin; }
+        
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(9);
+        doc.text(`Firma Ministro: ${getText('nombre-ministro')}`, pageW / 2, startY, { align: 'center' });
+        
+        startY += 10;
+
         doc.autoTable({
             startY,
             body: [
                 [{ content: 'Comisión Local de Finanzas:', colSpan: 3, styles: { fontStyle: 'bold', halign: 'center' } }],
                 ['\n\n_________________________', '\n\n_________________________', '\n\n_________________________'],
                 [getText('comision-nombre-1') || 'Firma 1', getText('comision-nombre-2') || 'Firma 2', getText('comision-nombre-3') || 'Firma 3'],
-                [{ content: '', colSpan: 3, styles: { cellPadding: 4 } }],
-                ['\n\n_________________________', '\n\n_________________________', ''],
-                [`Firma Ministro: ${getText('nombre-ministro')}`, `Firma Tesorero(a) Local`, ''],
             ],
             theme: 'plain', styles: { fontSize: 9, halign: 'center' }
         });
