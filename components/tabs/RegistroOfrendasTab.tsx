@@ -1,6 +1,6 @@
 // Fix: Implemented a full functional component instead of a placeholder.
 import React, { useState } from 'react';
-import { WeeklyRecord, Member, Donation, Formulas, ChurchInfo } from '../../types';
+import { WeeklyRecord, Member, Offering, Formulas, ChurchInfo } from '../../types';
 import { MONTH_NAMES } from '../../constants';
 import { Trash2, Plus, Calendar, X } from 'lucide-react';
 import { useSupabase } from '../../context/SupabaseContext';
@@ -30,11 +30,11 @@ const AutocompleteInput: React.FC<{ members: Member[], onSelect: (member: Member
 
     return (
         <div className="relative">
-            <input type="text" value={inputValue} onChange={handleChange} placeholder="Buscar o escribir nombre..." className="w-full p-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600 focus:border-transparent dark:bg-gray-700 dark:border-gray-600"/>
+            <input type="text" value={inputValue} onChange={handleChange} placeholder="Buscar o escribir nombre..." className="w-full p-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-600 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
             {suggestions.length > 0 && (
                 <ul className="absolute z-10 w-full mt-1 overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 dark:bg-gray-800 dark:border-gray-600">
                     {suggestions.map(member => (
-                        <li key={member.id} onClick={() => handleSelect(member)} className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <li key={member.id} onClick={() => handleSelect(member)} className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">
                             {member.name}
                         </li>
                     ))}
@@ -87,34 +87,34 @@ const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
             month: parseInt(dateInfo.month),
             year: parseInt(dateInfo.year),
             minister: churchInfo.defaultMinister,
-            donations: [],
+            offerings: [],
             formulas: defaultFormulas,
         };
         setCurrentRecord(newRecord);
     };
 
-    const handleAddDonation = () => {
+    const handleAddOffering = () => {
         if (!currentRecord || !selectedMember || !amount || parseFloat(amount) <= 0) {
             alert("Por favor, seleccione un miembro y una cantidad válida.");
             return;
         }
-        const newDonation: Donation = {
+        const newOffering: Offering = {
             id: `d-${Date.now()}`,
             memberId: selectedMember.id,
             memberName: selectedMember.name,
             category: category,
             amount: parseFloat(amount),
         };
-        setCurrentRecord({ ...currentRecord, donations: [...currentRecord.donations, newDonation] });
+        setCurrentRecord({ ...currentRecord, offerings: [...currentRecord.offerings, newOffering] });
         setSelectedMember(null);
         setAmount('');
     };
 
-    const handleRemoveDonation = (donationId: string) => {
+    const handleRemoveOffering = (offeringId: string) => {
         if (currentRecord) {
             setCurrentRecord({
                 ...currentRecord,
-                donations: currentRecord.donations.filter(d => d.id !== donationId),
+                offerings: currentRecord.offerings.filter(d => d.id !== offeringId),
             });
         }
     };
@@ -226,32 +226,44 @@ const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
                     </button>
                 </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
-                    <AutocompleteInput members={members} onSelect={setSelectedMember} />
+                    <div>
+                        <AutocompleteInput members={members} onSelect={setSelectedMember} />
+                        {selectedMember && (
+                            <div className="mt-2 p-2 bg-blue-100 dark:bg-blue-900/50 rounded-lg flex justify-between items-center">
+                                <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                    Miembro: <span className="font-bold">{selectedMember.name}</span>
+                                </p>
+                                <button onClick={() => setSelectedMember(null)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300" aria-label="Limpiar selección">
+                                    <X className="w-4 h-4" />
+                                </button>
+                            </div>
+                        )}
+                    </div>
                     <input type="number" value={amount} onChange={e => setAmount(e.target.value)} placeholder="Cantidad C$" className="w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600"/>
                     <select value={category} onChange={e => setCategory(e.target.value)} className="w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600">
                         {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
-                    <button onClick={handleAddDonation} className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700">
+                    <button onClick={handleAddOffering} className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700">
                        <Plus className="w-5 h-5"/> Agregar Ofrenda
                     </button>
                 </div>
             </div>
 
             <div className="p-6 bg-white rounded-xl shadow-lg dark:bg-gray-800">
-                 <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-300 mb-4">Donaciones Registradas</h3>
+                 <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-300 mb-4">Ofrendas Registradas</h3>
                  <div className="space-y-2 max-h-96 overflow-y-auto">
-                    {currentRecord.donations.length > 0 ? (
-                        [...currentRecord.donations].reverse().map(donation => (
-                            <div key={donation.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg dark:bg-gray-700/50">
+                    {currentRecord.offerings.length > 0 ? (
+                        [...currentRecord.offerings].reverse().map(offering => (
+                            <div key={offering.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg dark:bg-gray-700/50">
                                 <div>
-                                    <p className="font-semibold">{donation.memberName}</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">{donation.category} - C$ {donation.amount.toFixed(2)}</p>
+                                    <p className="font-semibold">{offering.memberName}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">{offering.category} - C$ {offering.amount.toFixed(2)}</p>
                                 </div>
-                                <button onClick={() => handleRemoveDonation(donation.id)} className="text-red-500 hover:text-red-700 p-2 dark:text-red-400 dark:hover:text-red-300"><Trash2 className="w-5 h-5" /></button>
+                                <button onClick={() => handleRemoveOffering(offering.id)} className="text-red-500 hover:text-red-700 p-2 dark:text-red-400 dark:hover:text-red-300"><Trash2 className="w-5 h-5" /></button>
                             </div>
                         ))
                     ) : (
-                        <p className="text-center text-gray-500 py-8 dark:text-gray-400">Aún no hay donaciones para esta semana.</p>
+                        <p className="text-center text-gray-500 py-8 dark:text-gray-400">Aún no hay ofrendas para esta semana.</p>
                     )}
                  </div>
             </div>

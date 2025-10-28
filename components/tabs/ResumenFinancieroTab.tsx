@@ -21,7 +21,7 @@ const ResumenFinancieroTab: React.FC<ResumenFinancieroTabProps> = ({ currentReco
 
     const subtotals: Record<string, number> = {};
     categories.forEach(cat => { subtotals[cat] = 0; });
-    currentRecord.donations.forEach(d => {
+    currentRecord.offerings.forEach(d => {
       if (subtotals[d.category] !== undefined) {
         subtotals[d.category] += d.amount;
       }

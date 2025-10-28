@@ -1,4 +1,4 @@
-import React, { useState, useMemo, FC, useEffect } from 'react';
+import React, { useState, useMemo, FC, useEffect, useCallback } from 'react';
 import { WeeklyRecord, Formulas, MonthlyReport, MonthlyReportFormState, ChurchInfo } from '../../types';
 import { MONTH_NAMES, initialMonthlyReportFormState } from '../../constants';
 import { Upload, Trash2, Save, FileDown } from 'lucide-react';
@@ -39,12 +39,33 @@ const Accordion: FC<{ title: string, children: React.ReactNode, initialOpen?: bo
     );
 };
 
-const CurrencyInput: FC<{ id: string, placeholder: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }> = ({ id, placeholder, value, onChange }) => (
+const CurrencyInput: FC<{ id: string, placeholder: string, value: string, onChange: (e: React.ChangeEvent<HTMLInputElement>) => void }> = React.memo(({ id, placeholder, value, onChange }) => (
     <div className="relative">
         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none dark:text-gray-400">C$</span>
-        <input type="number" step="0.01" id={id} name={id} placeholder={placeholder} value={value} onChange={onChange} className="w-full p-2 border rounded-lg pl-10 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" />
+        <input type="number" step="0.01" id={id} name={id} placeholder={placeholder} value={value} onChange={onChange} className="w-full p-2 border rounded-lg pl-10 bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-100" />
     </div>
-);
+));
+
+// Helper components for building the form moved outside the main component to prevent re-creation on render
+const Subheading: FC<{ title: string }> = ({ title }) => <h4 className="md:col-span-2 font-semibold text-gray-800 mb-2 mt-4 border-b pb-1 dark:text-gray-200 dark:border-gray-600">{title}</h4>;
+
+const Field: FC<{
+    id: keyof MonthlyReportFormState;
+    label: string;
+    isCurrency?: boolean;
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}> = React.memo(({ id, label, isCurrency = true, value, onChange }) => (
+    <div>
+        <label htmlFor={id} className="block text-sm font-medium text-gray-600 mb-1 dark:text-gray-300">{label}</label>
+        {isCurrency ? (
+            <CurrencyInput id={id} placeholder="0.00" value={value} onChange={onChange} />
+        ) : (
+            <input type="text" id={id} name={id} value={value} onChange={onChange} placeholder={label} className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 text-gray-900 dark:text-gray-100" />
+        )}
+    </div>
+));
+
 
 const calculateReportTotals = (formData: MonthlyReportFormState) => {
     const getNumericValue = (key: keyof MonthlyReportFormState) => parseFloat(formData[key]) || 0;
@@ -152,10 +173,10 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
     const { uploadFile, supabase } = useSupabase();
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormState(prevState => ({ ...prevState, [name]: value }));
-    };
+    }, []);
 
     const handleLoadData = () => {
         const filteredRecords = records.filter(r => r.month === selectedMonth && r.year === selectedYear);
@@ -170,7 +191,7 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
 
         filteredRecords.forEach(record => {
             let weeklyDiezmo = 0, weeklyOrdinaria = 0;
-            record.donations.forEach(d => {
+            record.offerings.forEach(d => {
                 if (d.category === "Diezmo") weeklyDiezmo += d.amount;
                 if (d.category === "Ordinaria") weeklyOrdinaria += d.amount;
                 if (publicServiceCategories.includes(d.category)) totalServicios += d.amount;
@@ -469,20 +490,6 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
             return dateB.getTime() - dateA.getTime();
         });
     }, [savedReports]);
-    
-    // Helper components for building the form
-    const Field = ({ id, label, isCurrency = true }: { id: keyof MonthlyReportFormState; label: string; isCurrency?: boolean }) => (
-        <div>
-            <label htmlFor={id} className="block text-sm font-medium text-gray-600 mb-1 dark:text-gray-300">{label}</label>
-            {isCurrency ? (
-                <CurrencyInput id={id} placeholder="0.00" value={formState[id]} onChange={handleChange} />
-            ) : (
-                <input type="text" id={id} name={id} value={formState[id]} onChange={handleChange} placeholder={label} className="w-full p-2 border rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" />
-            )}
-        </div>
-    );
-    const Subheading = ({ title }: { title: string }) => <h4 className="md:col-span-2 font-semibold text-gray-800 mb-2 mt-4 border-b pb-1 dark:text-gray-200 dark:border-gray-600">{title}</h4>;
-
 
     return (
         <div className="space-y-6">
@@ -551,91 +558,91 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
             <form id="financial-form" className="space-y-4">
                 <Accordion title="1. Información General del Reporte" initialOpen>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Field id="clave-iglesia" label="Clave Iglesia" isCurrency={false} />
-                        <Field id="mes-reporte" label="Mes del Reporte" isCurrency={false} />
-                        <Field id="nombre-iglesia" label="Nombre Iglesia Local" isCurrency={false} />
-                        <Field id="ano-reporte" label="Año del Reporte" isCurrency={false} />
-                        <Field id="distrito" label="Distrito" isCurrency={false} />
-                        <Field id="nombre-ministro" label="Nombre del Ministro" isCurrency={false} />
-                        <Field id="departamento" label="Departamento" isCurrency={false} />
-                        <Field id="grado-ministro" label="Grado del Ministro" isCurrency={false} />
-                        <Field id="miembros-activos" label="Miembros Activos" isCurrency={false}/>
-                        <Field id="tel-ministro" label="Teléfono / Celular" isCurrency={false} />
+                        <Field id="clave-iglesia" label="Clave Iglesia" isCurrency={false} value={formState['clave-iglesia']} onChange={handleChange} />
+                        <Field id="mes-reporte" label="Mes del Reporte" isCurrency={false} value={formState['mes-reporte']} onChange={handleChange} />
+                        <Field id="nombre-iglesia" label="Nombre Iglesia Local" isCurrency={false} value={formState['nombre-iglesia']} onChange={handleChange} />
+                        <Field id="ano-reporte" label="Año del Reporte" isCurrency={false} value={formState['ano-reporte']} onChange={handleChange} />
+                        <Field id="distrito" label="Distrito" isCurrency={false} value={formState['distrito']} onChange={handleChange} />
+                        <Field id="nombre-ministro" label="Nombre del Ministro" isCurrency={false} value={formState['nombre-ministro']} onChange={handleChange} />
+                        <Field id="departamento" label="Departamento" isCurrency={false} value={formState['departamento']} onChange={handleChange} />
+                        <Field id="grado-ministro" label="Grado del Ministro" isCurrency={false} value={formState['grado-ministro']} onChange={handleChange} />
+                        <Field id="miembros-activos" label="Miembros Activos" isCurrency={false} value={formState['miembros-activos']} onChange={handleChange} />
+                        <Field id="tel-ministro" label="Teléfono / Celular" isCurrency={false} value={formState['tel-ministro']} onChange={handleChange} />
                     </div>
                 </Accordion>
 
                 <Accordion title="2. Entradas (Ingresos)">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                        <div className="md:col-span-2"><Field id="saldo-anterior" label="Saldo del Mes Anterior" /></div>
+                        <div className="md:col-span-2"><Field id="saldo-anterior" label="Saldo del Mes Anterior" value={formState['saldo-anterior']} onChange={handleChange} /></div>
                         
                         <Subheading title="Ingresos por Ofrendas" />
-                        <Field id="ing-diezmos" label="Diezmos" />
-                        <Field id="ing-ofrendas-ordinarias" label="Ofrendas Ordinarias" />
-                        <Field id="ing-primicias" label="Primicias" />
-                        <Field id="ing-ayuda-encargado" label="Ayuda al Encargado" />
+                        <Field id="ing-diezmos" label="Diezmos" value={formState['ing-diezmos']} onChange={handleChange} />
+                        <Field id="ing-ofrendas-ordinarias" label="Ofrendas Ordinarias" value={formState['ing-ofrendas-ordinarias']} onChange={handleChange} />
+                        <Field id="ing-primicias" label="Primicias" value={formState['ing-primicias']} onChange={handleChange} />
+                        <Field id="ing-ayuda-encargado" label="Ayuda al Encargado" value={formState['ing-ayuda-encargado']} onChange={handleChange} />
 
                         <Subheading title="Ingresos por Colectas Especiales" />
-                        <Field id="ing-ceremonial" label="Ceremonial" />
-                        <Field id="ing-ofrenda-especial-sdd" label="Ofrenda Especial SdD NJG" />
-                        <Field id="ing-evangelizacion" label="Evangelización Mundial" />
-                        <Field id="ing-santa-cena" label="Colecta de Santa Cena" />
+                        <Field id="ing-ceremonial" label="Ceremonial" value={formState['ing-ceremonial']} onChange={handleChange} />
+                        <Field id="ing-ofrenda-especial-sdd" label="Ofrenda Especial SdD NJG" value={formState['ing-ofrenda-especial-sdd']} onChange={handleChange} />
+                        <Field id="ing-evangelizacion" label="Evangelización Mundial" value={formState['ing-evangelizacion']} onChange={handleChange} />
+                        <Field id="ing-santa-cena" label="Colecta de Santa Cena" value={formState['ing-santa-cena']} onChange={handleChange} />
                         
                         <Subheading title="Ingresos por Colectas Locales" />
-                        <Field id="ing-servicios-publicos" label="Pago de Servicios Públicos" />
-                        <Field id="ing-arreglos-locales" label="Arreglos Locales" />
-                        <Field id="ing-mantenimiento" label="Mantenimiento y Conservación" />
-                        <Field id="ing-construccion-local" label="Construcción Local" />
-                        <Field id="ing-muebles" label="Muebles y Artículos" />
-                        <Field id="ing-viajes-ministro" label="Viajes y viáticos para Ministro" />
-                        <Field id="ing-reuniones-ministeriales" label="Reuniones Ministeriales" />
-                        <Field id="ing-atencion-ministros" label="Atención a Ministros" />
-                        <Field id="ing-viajes-extranjero" label="Viajes fuera del País" />
-                        <Field id="ing-actividades-locales" label="Actividades Locales" />
-                        <Field id="ing-ciudad-lldm" label="Ofrendas para Ciudad LLDM" />
-                        <Field id="ing-adquisicion-terreno" label="Adquisición Terreno/Edificio" />
+                        <Field id="ing-servicios-publicos" label="Pago de Servicios Públicos" value={formState['ing-servicios-publicos']} onChange={handleChange} />
+                        <Field id="ing-arreglos-locales" label="Arreglos Locales" value={formState['ing-arreglos-locales']} onChange={handleChange} />
+                        <Field id="ing-mantenimiento" label="Mantenimiento y Conservación" value={formState['ing-mantenimiento']} onChange={handleChange} />
+                        <Field id="ing-construccion-local" label="Construcción Local" value={formState['ing-construccion-local']} onChange={handleChange} />
+                        <Field id="ing-muebles" label="Muebles y Artículos" value={formState['ing-muebles']} onChange={handleChange} />
+                        <Field id="ing-viajes-ministro" label="Viajes y viáticos para Ministro" value={formState['ing-viajes-ministro']} onChange={handleChange} />
+                        <Field id="ing-reuniones-ministeriales" label="Reuniones Ministeriales" value={formState['ing-reuniones-ministeriales']} onChange={handleChange} />
+                        <Field id="ing-atencion-ministros" label="Atención a Ministros" value={formState['ing-atencion-ministros']} onChange={handleChange} />
+                        <Field id="ing-viajes-extranjero" label="Viajes fuera del País" value={formState['ing-viajes-extranjero']} onChange={handleChange} />
+                        <Field id="ing-actividades-locales" label="Actividades Locales" value={formState['ing-actividades-locales']} onChange={handleChange} />
+                        <Field id="ing-ciudad-lldm" label="Ofrendas para Ciudad LLDM" value={formState['ing-ciudad-lldm']} onChange={handleChange} />
+                        <Field id="ing-adquisicion-terreno" label="Adquisición Terreno/Edificio" value={formState['ing-adquisicion-terreno']} onChange={handleChange} />
                     </div>
                 </Accordion>
 
                  <Accordion title="3. Salidas (Egresos)">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                         <Subheading title="Manutención del Ministro" />
-                        <Field id="egr-asignacion" label="Asignación Autorizada" />
-                        <Field id="egr-gomer" label="Gomer del Mes" />
+                        <Field id="egr-asignacion" label="Asignación Autorizada" value={formState['egr-asignacion']} onChange={handleChange} />
+                        <Field id="egr-gomer" label="Gomer del Mes" value={formState['egr-gomer']} onChange={handleChange} />
 
                         <Subheading title="Egresos por Colectas Especiales" />
-                        <Field id="egr-ceremonial" label="Ceremonial" />
-                        <Field id="egr-ofrenda-especial-sdd" label="Ofrenda Especial SdD NJG" />
-                        <Field id="egr-evangelizacion" label="Evangelización Mundial" />
-                        <Field id="egr-santa-cena" label="Colecta de Santa Cena" />
+                        <Field id="egr-ceremonial" label="Ceremonial" value={formState['egr-ceremonial']} onChange={handleChange} />
+                        <Field id="egr-ofrenda-especial-sdd" label="Ofrenda Especial SdD NJG" value={formState['egr-ofrenda-especial-sdd']} onChange={handleChange} />
+                        <Field id="egr-evangelizacion" label="Evangelización Mundial" value={formState['egr-evangelizacion']} onChange={handleChange} />
+                        <Field id="egr-santa-cena" label="Colecta de Santa Cena" value={formState['egr-santa-cena']} onChange={handleChange} />
 
                         <Subheading title="Egresos por Colectas Locales" />
-                        <Field id="egr-servicios-publicos" label="Pago de Servicios Públicos" />
-                        <Field id="egr-arreglos-locales" label="Arreglos Locales" />
-                        <Field id="egr-mantenimiento" label="Mantenimiento y Conservación" />
-                        <Field id="egr-traspaso-construccion" label="Traspaso para Construcción" />
-                        <Field id="egr-muebles" label="Muebles y Artículos" />
-                        <Field id="egr-viajes-ministro" label="Viajes y viáticos para Ministro" />
-                        <Field id="egr-reuniones-ministeriales" label="Reuniones Ministeriales" />
-                        <Field id="egr-atencion-ministros" label="Atención a Ministros" />
-                        <Field id="egr-viajes-extranjero" label="Viajes fuera del País" />
-                        <Field id="egr-actividades-locales" label="Actividades Locales" />
-                        <Field id="ing-ciudad-lldm" label="Ofrendas para Ciudad LLDM" />
-                        <Field id="egr-adquisicion-terreno" label="Adquisición Terreno/Edificio" />
+                        <Field id="egr-servicios-publicos" label="Pago de Servicios Públicos" value={formState['egr-servicios-publicos']} onChange={handleChange} />
+                        <Field id="egr-arreglos-locales" label="Arreglos Locales" value={formState['egr-arreglos-locales']} onChange={handleChange} />
+                        <Field id="egr-mantenimiento" label="Mantenimiento y Conservación" value={formState['egr-mantenimiento']} onChange={handleChange} />
+                        <Field id="egr-traspaso-construccion" label="Traspaso para Construcción" value={formState['egr-traspaso-construccion']} onChange={handleChange} />
+                        <Field id="egr-muebles" label="Muebles y Artículos" value={formState['egr-muebles']} onChange={handleChange} />
+                        <Field id="egr-viajes-ministro" label="Viajes y viáticos para Ministro" value={formState['egr-viajes-ministro']} onChange={handleChange} />
+                        <Field id="egr-reuniones-ministeriales" label="Reuniones Ministeriales" value={formState['egr-reuniones-ministeriales']} onChange={handleChange} />
+                        <Field id="egr-atencion-ministros" label="Atención a Ministros" value={formState['egr-atencion-ministros']} onChange={handleChange} />
+                        <Field id="egr-viajes-extranjero" label="Viajes fuera del País" value={formState['egr-viajes-extranjero']} onChange={handleChange} />
+                        <Field id="egr-actividades-locales" label="Actividades Locales" value={formState['egr-actividades-locales']} onChange={handleChange} />
+                        <Field id="ing-ciudad-lldm" label="Ofrendas para Ciudad LLDM" value={formState['ing-ciudad-lldm']} onChange={handleChange} />
+                        <Field id="egr-adquisicion-terreno" label="Adquisición Terreno/Edificio" value={formState['egr-adquisicion-terreno']} onChange={handleChange} />
                     </div>
                 </Accordion>
 
                 <Accordion title="4. Resumen y Firmas">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
                         <Subheading title="Distribución del Remanente" />
-                        <Field id="dist-direccion" label="Dirección General (Diezmos de Diezmos)" />
-                        <Field id="dist-tesoreria" label="Tesorería (Cuenta de Remanentes)" />
-                        <Field id="dist-pro-construccion" label="Pro-Construcción" />
-                        <Field id="dist-otros" label="Otros" />
+                        <Field id="dist-direccion" label="Dirección General (Diezmos de Diezmos)" value={formState['dist-direccion']} onChange={handleChange} />
+                        <Field id="dist-tesoreria" label="Tesorería (Cuenta de Remanentes)" value={formState['dist-tesoreria']} onChange={handleChange} />
+                        <Field id="dist-pro-construccion" label="Pro-Construcción" value={formState['dist-pro-construccion']} onChange={handleChange} />
+                        <Field id="dist-otros" label="Otros" value={formState['dist-otros']} onChange={handleChange} />
 
                         <Subheading title="Nombres para Firmas de Comisión" />
-                        <Field id="comision-nombre-1" label="Nombre Firma 1" isCurrency={false} />
-                        <Field id="comision-nombre-2" label="Nombre Firma 2" isCurrency={false} />
-                        <Field id="comision-nombre-3" label="Nombre Firma 3" isCurrency={false} />
+                        <Field id="comision-nombre-1" label="Nombre Firma 1" isCurrency={false} value={formState['comision-nombre-1']} onChange={handleChange} />
+                        <Field id="comision-nombre-2" label="Nombre Firma 2" isCurrency={false} value={formState['comision-nombre-2']} onChange={handleChange} />
+                        <Field id="comision-nombre-3" label="Nombre Firma 3" isCurrency={false} value={formState['comision-nombre-3']} onChange={handleChange} />
                     </div>
                 </Accordion>
             </form>

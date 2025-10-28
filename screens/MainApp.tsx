@@ -76,7 +76,7 @@ const MainApp: React.FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, hand
     // Generate detailed report with summary
     const subtotals: Record<string, number> = {};
     categories.forEach(cat => { subtotals[cat] = 0; });
-    record.donations.forEach(d => {
+    record.offerings.forEach(d => {
         if (subtotals[d.category] !== undefined) {
             subtotals[d.category] += d.amount;
         }
@@ -92,14 +92,14 @@ const MainApp: React.FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, hand
         ["Cálculos Finales", ""], ["TOTAL (Diezmo + Ordinaria)", total], [`Diezmo de Diezmo (${record.formulas.diezmoPercentage}%)`, diezmoDeDiezmo],
         [`Remanente (Umbral C$ ${record.formulas.remanenteThreshold})`, remanente], ["Gomer del Ministro", gomerMinistro]
     ];
-    const donationsData = record.donations.map(d => ({ Miembro: d.memberName, Categoría: d.category, Monto: d.amount }));
+    const offeringsData = record.offerings.map(d => ({ Miembro: d.memberName, Categoría: d.category, Monto: d.amount }));
 
     const wb = (window as any).XLSX.utils.book_new();
     const wsSummary = (window as any).XLSX.utils.aoa_to_sheet(summaryData);
     (window as any).XLSX.utils.book_append_sheet(wb, wsSummary, "Resumen");
     
-    const wsDonations = (window as any).XLSX.utils.json_to_sheet(donationsData);
-    (window as any).XLSX.utils.book_append_sheet(wb, wsDonations, "Detalle de Ofrendas");
+    const wsOfferings = (window as any).XLSX.utils.json_to_sheet(offeringsData);
+    (window as any).XLSX.utils.book_append_sheet(wb, wsOfferings, "Detalle de Ofrendas");
     
     const excelBuffer = (window as any).XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
     const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });

@@ -1,7 +1,7 @@
 // Fix: Added full type definitions for the application.
 export type Tab = 'register' | 'summary' | 'history' | 'monthly' | 'informe' | 'admin';
 
-export interface Donation {
+export interface Offering {
   id: string;
   category: string;
   amount: number;
@@ -25,7 +25,7 @@ export interface WeeklyRecord {
   month: number;
   year: number;
   minister: string;
-  donations: Donation[];
+  offerings: Offering[];
   formulas: Formulas;
 }
 

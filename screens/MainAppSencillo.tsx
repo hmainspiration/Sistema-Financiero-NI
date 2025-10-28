@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { WeeklyRecord, Member, Donation, Formulas, ChurchInfo } from '../types';
+import { WeeklyRecord, Member, Offering, Formulas, ChurchInfo } from '../types';
 import Header from '../components/layout/Header';
 import { CirclePlus, BarChart2, CalendarDays, Trash2, Plus, X } from 'lucide-react';
 import { MONTH_NAMES } from '../constants';
@@ -38,7 +38,7 @@ const SimpleAutocompleteInput: React.FC<AutocompleteInputProps> = ({ members, on
       {suggestions.length > 0 && (
         <ul className="absolute z-10 w-full mt-1 overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 dark:bg-gray-800 dark:border-gray-600">
           {suggestions.map(member => (
-            <li key={member.id} onClick={() => handleSelect(member)} className="px-4 py-3 cursor-pointer hover:bg-gray-100 text-lg dark:hover:bg-gray-700">{member.name}</li>
+            <li key={member.id} onClick={() => handleSelect(member)} className="px-4 py-3 text-lg cursor-pointer hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700">{member.name}</li>
           ))}
         </ul>
       )}
@@ -62,26 +62,26 @@ const RegistroSencilloTab: React.FC<{record: WeeklyRecord, setRecord: React.Disp
     const [isSubmitting, setIsSubmitting] = useState(false);
 
 
-    const handleAddDonation = () => {
+    const handleAddOffering = () => {
         if (!selectedMember || !amount || parseFloat(amount) <= 0) {
             alert("Por favor, seleccione un miembro y una cantidad válida.");
             return;
         }
-        const newDonation: Donation = {
+        const newOffering: Offering = {
             id: `d-${Date.now()}`,
             memberId: selectedMember.id,
             memberName: selectedMember.name,
             category: category,
             amount: parseFloat(amount),
         };
-        setRecord(prev => prev ? { ...prev, donations: [...prev.donations, newDonation] } : null);
+        setRecord(prev => prev ? { ...prev, offerings: [...prev.offerings, newOffering] } : null);
         setSelectedMember(null);
         setMemberNameInput('');
         setAmount('');
     };
     
-    const handleRemoveDonation = (donationId: string) => {
-        setRecord(prev => prev ? { ...prev, donations: prev.donations.filter(d => d.id !== donationId) } : null);
+    const handleRemoveOffering = (offeringId: string) => {
+        setRecord(prev => prev ? { ...prev, offerings: prev.offerings.filter(d => d.id !== offeringId) } : null);
     };
     
     const handleAddNewMember = async () => {
@@ -169,7 +169,7 @@ const RegistroSencilloTab: React.FC<{record: WeeklyRecord, setRecord: React.Disp
                         ))}
                     </select>
 
-                    <button onClick={handleAddDonation} className="w-full flex items-center justify-center gap-2 py-4 font-bold text-white text-lg transition duration-300 bg-blue-600 rounded-xl hover:bg-blue-700 !mt-6">
+                    <button onClick={handleAddOffering} className="w-full flex items-center justify-center gap-2 py-4 font-bold text-white text-lg transition duration-300 bg-blue-600 rounded-xl hover:bg-blue-700 !mt-6">
                         <Plus className="w-6 h-6" /> Agregar Ofrenda
                     </button>
                 </div>
@@ -178,14 +178,14 @@ const RegistroSencilloTab: React.FC<{record: WeeklyRecord, setRecord: React.Disp
             <div className="p-6 bg-white rounded-2xl shadow-lg dark:bg-gray-800">
                 <h3 className="text-2xl font-bold text-indigo-900 dark:text-indigo-300 mb-4">Ofrendas de la Semana</h3>
                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {record.donations.length > 0 ? (
-                        [...record.donations].reverse().map(donation => (
-                            <div key={donation.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg dark:bg-gray-700/50">
+                    {record.offerings.length > 0 ? (
+                        [...record.offerings].reverse().map(offering => (
+                            <div key={offering.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg dark:bg-gray-700/50">
                                 <div>
-                                    <p className="font-semibold text-lg">{donation.memberName}</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">{donation.category} - C$ {donation.amount.toFixed(2)}</p>
+                                    <p className="font-semibold text-lg">{offering.memberName}</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">{offering.category} - C$ {offering.amount.toFixed(2)}</p>
                                 </div>
-                                <button onClick={() => handleRemoveDonation(donation.id)} className="text-red-500 hover:text-red-700 p-2 dark:text-red-400 dark:hover:text-red-300"><Trash2 className="w-5 h-5" /></button>
+                                <button onClick={() => handleRemoveOffering(offering.id)} className="text-red-500 hover:text-red-700 p-2 dark:text-red-400 dark:hover:text-red-300"><Trash2 className="w-5 h-5" /></button>
                             </div>
                         ))
                     ) : (
@@ -202,7 +202,7 @@ const ResumenSencilloTab: React.FC<{record: WeeklyRecord, categories: string[]}>
     const totals = useMemo(() => {
         const subtotals: Record<string, number> = {};
         categories.forEach(cat => { subtotals[cat] = 0; });
-        record.donations.forEach(d => {
+        record.offerings.forEach(d => {
           if (subtotals[d.category] !== undefined) subtotals[d.category] += d.amount;
         });
         const total = (subtotals['Diezmo'] || 0) + (subtotals['Ordinaria'] || 0);
@@ -270,7 +270,7 @@ const HistorialSencilloTab: React.FC<{records: WeeklyRecord[], onSelectRecord: (
                             <button key={record.id} onClick={() => handleSelect(record)} className="w-full text-left p-5 bg-white rounded-xl shadow-md flex justify-between items-center hover:bg-gray-50 transition-colors dark:bg-gray-800 dark:hover:bg-gray-700">
                                 <div>
                                     <p className="font-bold text-lg text-indigo-900 dark:text-indigo-300">{`Semana del ${record.day} de ${MONTH_NAMES[record.month - 1]}`}</p>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">{record.year} - {record.donations.length} ofrendas</p>
+                                    <p className="text-sm text-gray-500 dark:text-gray-400">{record.year} - {record.offerings.length} ofrendas</p>
                                 </div>
                                 <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7"></path></svg>
                             </button>
@@ -345,7 +345,7 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
         // Generate detailed report with summary
         const subtotals: Record<string, number> = {};
         categories.forEach(cat => { subtotals[cat] = 0; });
-        record.donations.forEach(d => {
+        record.offerings.forEach(d => {
             if (subtotals[d.category] !== undefined) {
                 subtotals[d.category] += d.amount;
             }
@@ -361,14 +361,14 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
             ["Cálculos Finales", ""], ["TOTAL (Diezmo + Ordinaria)", total], [`Diezmo de Diezmo (${record.formulas.diezmoPercentage}%)`, diezmoDeDiezmo],
             [`Remanente (Umbral C$ ${record.formulas.remanenteThreshold})`, remanente], ["Gomer del Ministro", gomerMinistro]
         ];
-        const donationsData = record.donations.map(d => ({ Miembro: d.memberName, Categoría: d.category, Monto: d.amount }));
+        const offeringsData = record.offerings.map(d => ({ Miembro: d.memberName, Categoría: d.category, Monto: d.amount }));
 
         const wb = (window as any).XLSX.utils.book_new();
         const wsSummary = (window as any).XLSX.utils.aoa_to_sheet(summaryData);
         (window as any).XLSX.utils.book_append_sheet(wb, wsSummary, "Resumen");
         
-        const wsDonations = (window as any).XLSX.utils.json_to_sheet(donationsData);
-        (window as any).XLSX.utils.book_append_sheet(wb, wsDonations, "Detalle de Ofrendas");
+        const wsOfferings = (window as any).XLSX.utils.json_to_sheet(offeringsData);
+        (window as any).XLSX.utils.book_append_sheet(wb, wsOfferings, "Detalle de Ofrendas");
         
         const excelBuffer = (window as any).XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
         const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
@@ -442,7 +442,7 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
           month: parseInt(dateInfo.month),
           year: parseInt(dateInfo.year),
           minister: churchInfo.defaultMinister,
-          donations: [],
+          offerings: [],
           formulas: formulas,
         };
         setCurrentRecord(newRecord);

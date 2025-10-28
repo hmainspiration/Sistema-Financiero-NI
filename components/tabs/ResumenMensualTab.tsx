@@ -24,14 +24,14 @@ const ResumenMensualTab: React.FC<ResumenMensualTabProps> = ({ records, categori
     let totalRemanente = 0;
 
     filteredRecords.forEach(record => {
-        record.donations.forEach(donation => {
-            if (subtotals[donation.category] !== undefined) {
-                subtotals[donation.category] += donation.amount;
+        record.offerings.forEach(offering => {
+            if (subtotals[offering.category] !== undefined) {
+                subtotals[offering.category] += offering.amount;
             }
         });
 
-        const weeklyTotal = (record.donations.filter(d => d.category === 'Diezmo').reduce((s, d) => s + d.amount, 0)) + 
-                            (record.donations.filter(d => d.category === 'Ordinaria').reduce((s, d) => s + d.amount, 0));
+        const weeklyTotal = (record.offerings.filter(d => d.category === 'Diezmo').reduce((s, d) => s + d.amount, 0)) + 
+                            (record.offerings.filter(d => d.category === 'Ordinaria').reduce((s, d) => s + d.amount, 0));
         
         totalDiezmoDeDiezmo += Math.round(weeklyTotal * (record.formulas.diezmoPercentage / 100));
         if (weeklyTotal > record.formulas.remanenteThreshold) {
