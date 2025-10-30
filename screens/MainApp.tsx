@@ -191,7 +191,7 @@ const MainApp: React.FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, hand
                     churchInfo={churchInfo}
                 />;
       case 'monthly':
-        return <ResumenMensualTab records={weeklyRecords} categories={categories} />;
+        return <ResumenMensualTab records={weeklyRecords} categories={categories} formulas={formulas} />;
       case 'informe':
         return <InformeMensualTab 
                     records={weeklyRecords} 

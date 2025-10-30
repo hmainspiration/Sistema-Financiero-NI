@@ -1,6 +1,6 @@
 import { Member, Formulas, MonthlyReportFormState, ChurchInfo } from './types';
 
-export const APP_VERSION = '1.1.0';
+export const APP_VERSION = '1.1.1';
 
 // Lista de miembros actualizada según la solicitud del usuario.
 export const INITIAL_MEMBERS: Member[] = [

@@ -1,15 +1,16 @@
 
 
 import React, { useState, useMemo } from 'react';
-import { WeeklyRecord } from '../../types';
+import { WeeklyRecord, Formulas } from '../../types';
 import { MONTH_NAMES } from '../../constants';
 
 interface ResumenMensualTabProps {
   records: WeeklyRecord[];
   categories: string[];
+  formulas: Formulas;
 }
 
-const ResumenMensualTab: React.FC<ResumenMensualTabProps> = ({ records, categories }) => {
+const ResumenMensualTab: React.FC<ResumenMensualTabProps> = ({ records, categories, formulas }) => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
@@ -24,6 +25,8 @@ const ResumenMensualTab: React.FC<ResumenMensualTabProps> = ({ records, categori
     let totalRemanente = 0;
 
     filteredRecords.forEach(record => {
+        const recordFormulas = record.formulas || formulas; // FIX: Use global formulas as fallback
+        
         record.offerings.forEach(offering => {
             if (subtotals[offering.category] !== undefined) {
                 subtotals[offering.category] += offering.amount;
@@ -33,9 +36,9 @@ const ResumenMensualTab: React.FC<ResumenMensualTabProps> = ({ records, categori
         const weeklyTotal = (record.offerings.filter(d => d.category === 'Diezmo').reduce((s, d) => s + d.amount, 0)) + 
                             (record.offerings.filter(d => d.category === 'Ordinaria').reduce((s, d) => s + d.amount, 0));
         
-        totalDiezmoDeDiezmo += Math.round(weeklyTotal * (record.formulas.diezmoPercentage / 100));
-        if (weeklyTotal > record.formulas.remanenteThreshold) {
-            totalRemanente += Math.round(weeklyTotal - record.formulas.remanenteThreshold);
+        totalDiezmoDeDiezmo += Math.round(weeklyTotal * (recordFormulas.diezmoPercentage / 100));
+        if (weeklyTotal > recordFormulas.remanenteThreshold) {
+            totalRemanente += Math.round(weeklyTotal - recordFormulas.remanenteThreshold);
         }
     });
     
@@ -43,7 +46,7 @@ const ResumenMensualTab: React.FC<ResumenMensualTabProps> = ({ records, categori
     const gomerMinistro = Math.round(total - totalDiezmoDeDiezmo);
 
     return { subtotals, total, totalDiezmoDeDiezmo, totalRemanente, gomerMinistro };
-  }, [records, selectedMonth, selectedYear, categories]);
+  }, [records, selectedMonth, selectedYear, categories, formulas]);
 
   return (
     <div className="space-y-6">
