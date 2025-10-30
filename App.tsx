@@ -67,6 +67,39 @@ const App: React.FC = () => {
         }
     }, []);
 
+    // Data Sanitization Effect: Runs once on mount to clean up old data formats.
+    useEffect(() => {
+        const storedRecordsRaw = window.localStorage.getItem('app_weekly_records');
+        if (storedRecordsRaw) {
+            try {
+                const parsedRecords: WeeklyRecord[] = JSON.parse(storedRecordsRaw);
+                let wasMutated = false;
+                
+                const sanitizedRecords = parsedRecords.map(record => {
+                    let newRecord = { ...record };
+                    // Ensure 'offerings' exists and is an array
+                    if (!Array.isArray(newRecord.offerings)) {
+                        newRecord.offerings = [];
+                        wasMutated = true;
+                    }
+                    // Ensure 'formulas' exists and is an object
+                    if (typeof newRecord.formulas !== 'object' || newRecord.formulas === null) {
+                        newRecord.formulas = DEFAULT_FORMULAS;
+                        wasMutated = true;
+                    }
+                    return newRecord;
+                });
+
+                if (wasMutated) {
+                    console.warn("Sanitizing old weekly records format from localStorage...");
+                    setWeeklyRecords(sanitizedRecords);
+                }
+            } catch (e) {
+                console.error("Failed to parse or sanitize weekly records from localStorage", e);
+            }
+        }
+    }, []); // Empty dependency array ensures this runs only once on mount
+
     useEffect(() => {
         if (isLoggedIn && supabase) {
             const loadInitialData = async () => {
