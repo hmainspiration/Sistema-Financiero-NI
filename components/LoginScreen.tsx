@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, Eye, EyeOff } from 'lucide-react';
+import { APP_VERSION } from '../constants';
 
 interface LoginScreenProps {
   onLoginSuccess: () => void;
@@ -78,6 +79,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
         >
           Ingresar
         </button>
+
+        <p className="pt-2 text-xs text-center text-gray-400 dark:text-gray-500">
+          Versión {APP_VERSION}
+        </p>
       </div>
     </div>
   );
