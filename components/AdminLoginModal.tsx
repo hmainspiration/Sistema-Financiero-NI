@@ -12,7 +12,7 @@ const AdminLoginModal: React.FC<AdminLoginModalProps> = ({ onClose, onSuccess })
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const handleLogin = () => {
-    const adminPassword = (window as any).ADMIN_PASSWORD || 'admin'; // Fallback for safety
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || 'admin'; // Fallback for safety
     if (password.trim() === adminPassword) {
       onSuccess();
     } else {

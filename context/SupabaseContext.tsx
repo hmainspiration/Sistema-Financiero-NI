@@ -4,8 +4,6 @@ import React, { createContext, useContext, useState, ReactNode, useEffect, useCa
 declare global {
     interface Window {
         supabase: any;
-        SUPABASE_URL: string;
-        SUPABASE_KEY: string;
     }
 }
 
@@ -38,11 +36,12 @@ export const SupabaseProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const SUPABASE_URL = window.SUPABASE_URL;
-        const SUPABASE_KEY = window.SUPABASE_KEY;
+        // Read Supabase credentials from Vite's environment variables
+        const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+        const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_KEY;
 
-        if (!SUPABASE_URL || !SUPABASE_KEY || SUPABASE_URL.includes("PEGUE_SU_URL")) {
-            setError("La integración con Supabase no está configurada. Por favor, defina SUPABASE_URL y SUPABASE_KEY en el script de configuración dentro de 'index.html'.");
+        if (!SUPABASE_URL || !SUPABASE_KEY) {
+            setError("La configuración de Supabase no se encontró. Asegúrese de que VITE_SUPABASE_URL y VITE_SUPABASE_KEY estén definidas en sus variables de entorno.");
             return;
         }
 

@@ -75,7 +75,7 @@ const MainApp: FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, handlers, 
         return { success: false, error: new Error("Supabase client not initialized.") };
     }
 
-    const churchName = (window as any).CHURCH_NAME || 'La_Empresa';
+    const churchName = import.meta.env.VITE_CHURCH_NAME || 'La_Empresa';
     const monthName = MONTH_NAMES[record.month - 1];
     const yearShort = record.year.toString().slice(-2);
     const dayPadded = record.day.toString().padStart(2, '0');

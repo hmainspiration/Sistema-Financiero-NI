@@ -12,9 +12,8 @@ const LoginScreen: FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
 
   const handleLogin = () => {
-    // Lee la credencial desde el objeto window, con un valor de respaldo para desarrollo.
-    // Esta configuración se define en un script en `index.html`.
-    const validPassword = (window as any).CHURCH_PASSWORD || 'NIMT02';
+    // Lee la credencial desde las variables de entorno de Vite.
+    const validPassword = import.meta.env.VITE_CHURCH_PASSWORD || 'NIMT02';
 
     // Trim whitespace to be tolerant of mobile autocorrect errors
     if (password.trim() === validPassword) {

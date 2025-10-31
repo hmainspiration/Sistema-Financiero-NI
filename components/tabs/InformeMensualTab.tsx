@@ -212,8 +212,8 @@ const InformeMensualTab: React.FC<InformeMensualTabProps> = ({ records, formulas
 
         setFormState(prev => ({
             ...prev,
-            'clave-iglesia': (window as any).CHURCH_NAME || 'La Empresa',
-            'nombre-iglesia': (window as any).CHURCH_NAME || 'La Empresa',
+            'clave-iglesia': import.meta.env.VITE_CHURCH_NAME || 'La Empresa',
+            'nombre-iglesia': import.meta.env.VITE_CHURCH_NAME || 'La Empresa',
             'nombre-ministro': churchInfo.defaultMinister || filteredRecords[0]?.minister || '',
             'grado-ministro': churchInfo.ministerGrade,
             'distrito': churchInfo.district,
