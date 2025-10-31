@@ -1,9 +1,9 @@
 // Fix: Implemented the main App component with routing and state management.
 import React, { useState, useEffect, Dispatch, SetStateAction, FC } from 'react';
 import LoginScreen from './components/LoginScreen';
-import VersionSelectionScreen from './screens/VersionSelectionScreen';
-import MainApp from './screens/MainApp';
-import MainAppSencillo from './screens/MainAppSencillo';
+import VersionSelectionScreen from './components/VersionSelectionScreen';
+import MainApp from './components/MainApp';
+import MainAppSencillo from './components/MainAppSencillo';
 import { useSupabase } from './context/SupabaseContext';
 import { Member, WeeklyRecord, Formulas, MonthlyReport, ChurchInfo, Comisionado } from './types';
 import { INITIAL_MEMBERS, INITIAL_CATEGORIES, DEFAULT_FORMULAS, DEFAULT_CHURCH_INFO } from './constants';
@@ -13,7 +13,17 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, Dispatch<SetState
     const [storedValue, setStoredValue] = useState<T>(() => {
         try {
             const item = window.localStorage.getItem(key);
-            return item ? JSON.parse(item) : initialValue;
+            if (item) {
+                return JSON.parse(item);
+            }
+            // For the theme key on initial load, respect the user's OS preference
+            // to match the logic in the <head> script and prevent hydration mismatch.
+            if (key === 'app_theme') {
+                 if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    return 'dark' as T;
+                }
+            }
+            return initialValue;
         } catch (error) {
             console.error(error);
             return initialValue;

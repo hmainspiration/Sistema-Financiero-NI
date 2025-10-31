@@ -1,26 +1,39 @@
-
 import React, { FC } from 'react';
+import { Monitor, Smartphone } from 'lucide-react';
 
 interface VersionSelectionScreenProps {
-  onSelectVersion: (version: 'completo' | 'sencillo') => void;
+    onSelect: (version: 'sencillo' | 'completo') => void;
 }
 
-const VersionSelectionScreen: FC<VersionSelectionScreenProps> = ({ onSelectVersion }) => {
-  return (
-    <div className="flex items-center justify-center h-screen">
-      <div className="w-full max-w-md p-8 space-y-8 text-center bg-white rounded-lg shadow-md dark:bg-gray-800">
-        <h2 className="text-2xl font-bold">Select Application Version</h2>
-        <div className="flex justify-around pt-4">
-          <button onClick={() => onSelectVersion('sencillo')} className="px-6 py-3 text-lg font-semibold text-white bg-primary-600 rounded-md hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500">
-            Sencillo
-          </button>
-          <button onClick={() => onSelectVersion('completo')} className="px-6 py-3 text-lg font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
-            Completo
-          </button>
+const VersionSelectionScreen: FC<VersionSelectionScreenProps> = ({ onSelect }) => {
+    return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-900 to-blue-600 p-4">
+            <div className="w-full max-w-md p-8 text-center bg-white rounded-2xl shadow-2xl dark:bg-gray-800">
+                <h1 className="text-4xl font-bold text-indigo-900 dark:text-indigo-300">¡Bienvenido!</h1>
+                <p className="mt-2 text-lg text-gray-600 dark:text-gray-300">Elija el modo de experiencia que prefiera.</p>
+                
+                <div className="mt-10 space-y-6">
+                    <button
+                        onClick={() => onSelect('sencillo')}
+                        className="group flex flex-col items-center justify-center w-full p-6 text-left transition duration-300 border-2 border-transparent rounded-lg bg-gray-50 hover:bg-white hover:border-blue-600 hover:shadow-lg dark:bg-gray-700 dark:hover:bg-gray-600 dark:hover:border-blue-500"
+                    >
+                         <Smartphone className="w-12 h-12 mb-3 text-blue-600 dark:text-blue-400" />
+                        <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">Versión Sencilla</h2>
+                        <p className="mt-1 text-gray-500 dark:text-gray-400">Ideal para un registro rápido y fácil.</p>
+                    </button>
+                    
+                    <button
+                        onClick={() => onSelect('completo')}
+                        className="group flex flex-col items-center justify-center w-full p-6 text-left transition duration-300 border-2 border-transparent rounded-lg bg-gray-50 hover:bg-white hover:border-blue-600 hover:shadow-lg dark:bg-gray-700 dark:hover:bg-gray-600 dark:hover:border-blue-500"
+                    >
+                        <Monitor className="w-12 h-12 mb-3 text-indigo-800 dark:text-indigo-400" />
+                        <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-100">Versión Completa</h2>
+                        <p className="mt-1 text-gray-500 dark:text-gray-400">Acceso a todas las funciones, incluyendo informes mensuales y administración avanzada.</p>
+                    </button>
+                </div>
+            </div>
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default VersionSelectionScreen;

@@ -16,7 +16,8 @@ export default defineConfig(({ mode }) => {
       },
       resolve: {
         alias: {
-          '@': path.resolve(__dirname, '.'),
+          // Fix: Se reemplazó `process.cwd()` con `.` para solucionar un error de tipo en TypeScript. `path.resolve('.')` sigue resolviendo correctamente a la raíz del proyecto.
+          '@': path.resolve('.'),
         }
       }
     };

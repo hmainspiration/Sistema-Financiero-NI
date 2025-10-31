@@ -79,7 +79,6 @@ const AdminPanelTab: React.FC<{
     const [tempFormulas, setTempFormulas] = useState<Formulas>(formulas);
     const [tempChurchInfo, setTempChurchInfo] = useState<ChurchInfo>(churchInfo);
     const [editingMember, setEditingMember] = useState<Member | null>(null);
-    const [editingComisionado, setEditingComisionado] = useState<Comisionado | null>(null);
     const [newComisionado, setNewComisionado] = useState({ nombre: '', cargo: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
     
@@ -204,7 +203,6 @@ const AdminPanelTab: React.FC<{
         alert("Información predeterminada guardada.");
     };
 
-    // --- Comisionados Handlers ---
     const handleAddComisionado = async () => {
         if (!newComisionado.nombre.trim() || !newComisionado.cargo.trim()) {
             alert('Nombre y cargo son requeridos.');
@@ -213,7 +211,7 @@ const AdminPanelTab: React.FC<{
         setIsSubmitting(true);
         try {
             const added = await addItem('comisionados', newComisionado);
-            setComisionados(prev => [...prev, added]);
+            setComisionados(prev => [...prev, added].sort((a,b) => a.nombre.localeCompare(b.nombre)));
             setNewComisionado({ nombre: '', cargo: '' });
         } catch (error) {
             alert(`Error al agregar comisionado: ${error instanceof Error ? error.message : String(error)}`);
@@ -222,24 +220,8 @@ const AdminPanelTab: React.FC<{
         }
     };
 
-    const handleSaveComisionado = async () => {
-        if (editingComisionado) {
-            setIsSubmitting(true);
-            try {
-                const { id, nombre, cargo } = editingComisionado;
-                const updated = await updateItem('comisionados', id, { nombre, cargo });
-                setComisionados(prev => prev.map(c => c.id === id ? updated : c));
-                setEditingComisionado(null);
-            } catch (error) {
-                alert(`Error al guardar comisionado: ${error instanceof Error ? error.message : String(error)}`);
-            } finally {
-                setIsSubmitting(false);
-            }
-        }
-    };
-    
     const handleDeleteComisionado = async (id: string) => {
-        if (window.confirm("¿Seguro que quiere eliminar a este miembro de la comisión?")) {
+        if (window.confirm("¿Seguro que quiere eliminar este comisionado?")) {
             try {
                 await deleteItem('comisionados', id);
                 setComisionados(prev => prev.filter(c => c.id !== id));
@@ -250,88 +232,36 @@ const AdminPanelTab: React.FC<{
     };
 
     return (
-        <div className="space-y-8">
-            <h2 className="text-2xl font-bold text-indigo-900 dark:text-white">Panel de Administración</h2>
+        <div className="space-y-6">
+            <h2 className="text-2xl font-bold text-indigo-900 dark:text-indigo-300">Panel de Administración</h2>
+            <SupabaseStatusIndicator />
 
-            <div className="p-6 bg-white rounded-xl shadow-lg space-y-4 dark:bg-gray-800">
-                <h3 className="text-xl font-bold text-indigo-900 mb-2 dark:text-indigo-300">Conexión a la Nube (Supabase)</h3>
-                <SupabaseStatusIndicator />
-                 <p className="text-xs text-gray-500 mt-2 dark:text-gray-400">
-                    La conexión se establece utilizando las variables definidas en el archivo <code>index.html</code>.
-                    Si ve un error, asegúrese de que <code>window.SUPABASE_URL</code> y <code>window.SUPABASE_KEY</code> estén configuradas correctamente en ese archivo.
-                </p>
-            </div>
-
-            <div className="p-6 bg-white rounded-xl shadow-lg dark:bg-gray-800">
-                <h3 className="text-xl font-bold text-indigo-900 mb-4 dark:text-indigo-300">Gestionar Comisión de Finanzas</h3>
-                <div className="flex flex-col sm:flex-row gap-2 mb-4">
-                    <input type="text" value={newComisionado.nombre} onChange={e => setNewComisionado(p => ({ ...p, nombre: e.target.value }))} placeholder="Nombre completo" className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
-                    <input type="text" value={newComisionado.cargo} onChange={e => setNewComisionado(p => ({ ...p, cargo: e.target.value }))} placeholder="Cargo (e.g., Finanzas)" className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
-                    <button onClick={handleAddComisionado} disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><UserPlus className="w-5 h-5"/></button>
-                </div>
-                <ul className="space-y-2 max-h-60 overflow-y-auto">
-                    {comisionados.map(c => (
-                        <li key={c.id} className="flex justify-between items-center p-2 bg-gray-50 rounded-md dark:bg-gray-700/50">
-                             {editingComisionado?.id === c.id ? (
-                                <>
-                                    <input type="text" value={editingComisionado.nombre} onChange={e => setEditingComisionado({...editingComisionado, nombre: e.target.value})} className="flex-grow p-1 mr-2 border rounded-md" />
-                                    <input type="text" value={editingComisionado.cargo} onChange={e => setEditingComisionado({...editingComisionado, cargo: e.target.value})} className="w-32 p-1 border rounded-md" />
-                                    <button onClick={handleSaveComisionado} disabled={isSubmitting} className="text-green-600 p-1 ml-2"><Check/></button>
-                                    <button onClick={() => setEditingComisionado(null)} className="text-red-600 p-1"><X/></button>
-                                </>
-                             ) : (
-                                <>
-                                    <div><span className="font-semibold">{c.nombre}</span> <span className="text-sm text-gray-500">({c.cargo})</span></div>
-                                    <div className="flex items-center gap-3">
-                                        <button onClick={() => setEditingComisionado(JSON.parse(JSON.stringify(c)))} className="text-blue-600"><Pencil className="w-5 h-5"/></button>
-                                        <button onClick={() => handleDeleteComisionado(c.id)} className="text-red-600"><Trash2 className="w-5 h-5"/></button>
-                                    </div>
-                                </>
-                             )}
-                        </li>
-                    ))}
-                </ul>
-            </div>
-            
-            <div className="p-6 bg-white rounded-xl shadow-lg dark:bg-gray-800">
-                <h3 className="text-xl font-bold text-indigo-900 mb-4 dark:text-indigo-300">Gestionar Miembros</h3>
+            <div className="p-4 bg-white rounded-xl shadow-lg dark:bg-gray-800">
+                <h3 className="text-xl font-bold text-indigo-900 mb-4 dark:text-indigo-300">Gestión de Miembros</h3>
                 <div className="flex gap-2 mb-4">
-                    <input type="text" value={newMemberName} onChange={e => setNewMemberName(e.target.value)} placeholder="Nuevo miembro" className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
-                    <button onClick={handleAddMember} disabled={isSubmitting} className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400">
-                        <UserPlus className="w-5 h-5" />
+                    <input type="text" value={newMemberName} onChange={(e) => setNewMemberName(e.target.value)} placeholder="Nombre completo" className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                    <button onClick={handleAddMember} disabled={isSubmitting} className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400">
+                        <UserPlus className="w-5 h-5"/> Añadir
                     </button>
                 </div>
-                <ul className="space-y-2 max-h-60 overflow-y-auto">
-                    {members.map(m => (
-                        <li key={m.id} className="flex justify-between items-center p-2 bg-gray-50 rounded-md dark:bg-gray-700/50">
-                            {editingMember?.id === m.id ? (
-                                <>
-                                    <input 
-                                        type="text"
-                                        value={editingMember.name}
-                                        onChange={(e) => setEditingMember({...editingMember, name: e.target.value})}
-                                        className="flex-grow p-1 border border-blue-400 rounded-md bg-white dark:bg-gray-600 dark:border-blue-500 dark:text-gray-100"
-                                        autoFocus
-                                    />
-                                    <div className="flex items-center gap-2 ml-2">
-                                        <button onClick={handleSaveEdit} disabled={isSubmitting} className="text-green-600 hover:text-green-800 dark:text-green-400 dark:hover:text-green-300 disabled:text-gray-400"><Check className="w-5 h-5"/></button>
-                                        <button onClick={() => setEditingMember(null)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"><X className="w-5 h-5"/></button>
-                                    </div>
-                                </>
+                <ul className="space-y-2 max-h-72 overflow-y-auto">
+                    {members.map(member => (
+                        <li key={member.id} className={`flex items-center justify-between p-2 rounded-md ${member.isActive ? 'bg-gray-50 dark:bg-gray-700/50' : 'bg-gray-200 dark:bg-gray-600'}`}>
+                           {editingMember?.id === member.id ? (
+                                <div className="flex-grow flex gap-2 items-center">
+                                    <input type="text" value={editingMember.name} onChange={(e) => setEditingMember({ ...editingMember, name: e.target.value })} className="flex-grow p-1 border rounded bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" autoFocus />
+                                    <button onClick={handleSaveEdit} disabled={isSubmitting} className="p-2 text-green-500 hover:text-green-700"><Check className="w-4 h-4" /></button>
+                                    <button onClick={() => setEditingMember(null)} className="p-2 text-red-500 hover:text-red-700"><X className="w-4 h-4" /></button>
+                                </div>
                             ) : (
                                 <>
-                                    <div className="flex items-center gap-3">
-                                        <input
-                                            type="checkbox"
-                                            className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-900 dark:border-gray-600 dark:checked:bg-blue-600 dark:checked:border-blue-600"
-                                            checked={m.isActive}
-                                            onChange={(e) => handleToggleMemberActive(m.id, e.target.checked)}
-                                        />
-                                        <span className={`dark:text-gray-200 ${!m.isActive && 'line-through text-gray-400'}`}>{m.name}</span>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <button onClick={() => handleStartEdit(m)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"><Pencil className="w-5 h-5"/></button>
-                                        <button onClick={() => handleDeleteMember(m.id)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"><Trash2 className="w-5 h-5"/></button>
+                                    <span className={`${!member.isActive && 'line-through'}`}>{member.name}</span>
+                                    <div className="flex items-center gap-2">
+                                        <button onClick={() => handleToggleMemberActive(member.id, !member.isActive)} title={member.isActive ? "Marcar como inactivo" : "Marcar como activo"} className={`px-2 py-1 text-xs rounded-full ${member.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'}`}>
+                                            {member.isActive ? "Activo" : "Inactivo"}
+                                        </button>
+                                        <button onClick={() => handleStartEdit(member)} className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"><Pencil className="w-4 h-4" /></button>
+                                        <button onClick={() => handleDeleteMember(member.id)} className="p-2 text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
                                     </div>
                                 </>
                             )}
@@ -339,37 +269,88 @@ const AdminPanelTab: React.FC<{
                     ))}
                 </ul>
             </div>
-
-            <div className="p-6 bg-white rounded-xl shadow-lg dark:bg-gray-800">
-                <h3 className="text-xl font-bold text-indigo-900 mb-4 dark:text-indigo-300">Gestionar Categorías</h3>
-                <div className="flex gap-2 mb-4">
-                    <input type="text" value={newCategory} onChange={e => setNewCategory(e.target.value)} placeholder="Nueva categoría" className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
-                    <button onClick={handleAddCategory} disabled={isSubmitting} className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors disabled:bg-gray-400">
-                        <UserPlus className="w-5 h-5" />
-                    </button>
+            
+            <div className="p-4 bg-white rounded-xl shadow-lg dark:bg-gray-800">
+                <h3 className="text-xl font-bold text-indigo-900 mb-4 dark:text-indigo-300">Gestión de Categorías</h3>
+                 <div className="flex gap-2 mb-4">
+                    <input type="text" value={newCategory} onChange={(e) => setNewCategory(e.target.value)} placeholder="Nombre de categoría" className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" />
+                    <button onClick={handleAddCategory} disabled={isSubmitting} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400">Añadir</button>
                 </div>
-                <ul className="space-y-2 max-h-60 overflow-y-auto">
-                    {categories.map(c => <li key={c} className="flex justify-between items-center p-2 bg-gray-50 rounded-md dark:bg-gray-700/50"><span className="dark:text-gray-200">{c}</span><button onClick={() => handleDeleteCategory(c)} className="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"><Trash2 className="w-5 h-5"/></button></li>)}
+                 <ul className="flex flex-wrap gap-2">
+                    {categories.map(cat => (
+                        <li key={cat} className="flex items-center gap-2 px-3 py-1 bg-gray-100 rounded-full text-sm dark:bg-gray-700">
+                            <span>{cat}</span>
+                            <button onClick={() => handleDeleteCategory(cat)} className="text-red-500 hover:text-red-700"><X className="w-4 h-4"/></button>
+                        </li>
+                    ))}
                 </ul>
             </div>
 
-            <div className="p-6 bg-white rounded-xl shadow-lg dark:bg-gray-800">
-                <h3 className="text-xl font-bold text-indigo-900 mb-4 dark:text-indigo-300">Gestionar Fórmulas</h3>
+            <div className="p-4 bg-white rounded-xl shadow-lg dark:bg-gray-800">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-300">Fórmulas de Cálculo</h3>
+                    <button onClick={handleSaveFormulas} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"><Save className="w-5 h-5"/> Guardar</button>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                        <label htmlFor="diezmoPercentage" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Porcentaje Diezmo de Diezmo (%)</label>
-                        <input type="number" name="diezmoPercentage" id="diezmoPercentage" value={tempFormulas.diezmoPercentage} onChange={handleFormulaChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Porcentaje Diezmo (%)</label>
+                        <input type="number" name="diezmoPercentage" value={tempFormulas.diezmoPercentage} onChange={handleFormulaChange} className="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" />
                     </div>
                     <div>
-                        <label htmlFor="remanenteThreshold" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Umbral Remanente (C$)</label>
-                        <input type="number" name="remanenteThreshold" id="remanenteThreshold" value={tempFormulas.remanenteThreshold} onChange={handleFormulaChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Umbral Remanente (C$)</label>
+                        <input type="number" name="remanenteThreshold" value={tempFormulas.remanenteThreshold} onChange={handleFormulaChange} className="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" />
                     </div>
                 </div>
-                <button onClick={handleSaveFormulas} className="mt-4 w-full sm:w-auto px-6 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors">
-                    Guardar Fórmulas
-                </button>
             </div>
-            
+
+            <div className="p-4 bg-white rounded-xl shadow-lg dark:bg-gray-800">
+                 <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-bold text-indigo-900 dark:text-indigo-300">Información de Iglesia</h3>
+                    <button onClick={handleSaveChurchInfo} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700"><Save className="w-5 h-5"/> Guardar</button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Ministro por Defecto</label>
+                        <input type="text" name="defaultMinister" value={tempChurchInfo.defaultMinister} onChange={handleChurchInfoChange} className="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Grado del Ministro</label>
+                        <input type="text" name="ministerGrade" value={tempChurchInfo.ministerGrade} onChange={handleChurchInfoChange} className="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Distrito</label>
+                        <input type="text" name="district" value={tempChurchInfo.district} onChange={handleChurchInfoChange} className="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Departamento</label>
+                        <input type="text" name="department" value={tempChurchInfo.department} onChange={handleChurchInfoChange} className="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Teléfono Ministro</label>
+                        <input type="text" name="ministerPhone" value={tempChurchInfo.ministerPhone} onChange={handleChurchInfoChange} className="mt-1 w-full p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"/>
+                    </div>
+                </div>
+            </div>
+
+             <div className="p-4 bg-white rounded-xl shadow-lg dark:bg-gray-800">
+                <h3 className="text-xl font-bold text-indigo-900 mb-4 dark:text-indigo-300">Comisión de Finanzas</h3>
+                <div className="flex flex-col md:flex-row gap-2 mb-4">
+                    <input type="text" value={newComisionado.nombre} onChange={(e) => setNewComisionado({...newComisionado, nombre: e.target.value})} placeholder="Nombre completo" className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" />
+                    <input type="text" value={newComisionado.cargo} onChange={(e) => setNewComisionado({...newComisionado, cargo: e.target.value})} placeholder="Cargo" className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200" />
+                    <button onClick={handleAddComisionado} disabled={isSubmitting} className="flex-shrink-0 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400">Añadir</button>
+                </div>
+                <ul className="space-y-2">
+                    {comisionados.map(com => (
+                        <li key={com.id} className="flex items-center justify-between p-2 bg-gray-50 rounded-md dark:bg-gray-700/50">
+                            <div>
+                                <p className="font-semibold">{com.nombre}</p>
+                                <p className="text-sm text-gray-500 dark:text-gray-400">{com.cargo}</p>
+                            </div>
+                            <button onClick={() => handleDeleteComisionado(com.id)} className="p-2 text-red-500 hover:text-red-700"><Trash2 className="w-4 h-4" /></button>
+                        </li>
+                    ))}
+                </ul>
+            </div>
         </div>
     );
 };

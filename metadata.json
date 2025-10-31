@@ -1,5 +1,5 @@
 {
-  "name": "Copy of Sistema de Finanzas NI",
+  "name": "Sistema de Finanzas",
   "description": "A comprehensive web application for managing church finances, including members, donations, weekly records, and monthly reports, with data persistence and Supabase integration.",
   "requestFramePermissions": []
 }

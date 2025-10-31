@@ -6,7 +6,9 @@
     <title>Sistema de Finanzas - Iglesia</title>
     <script>
       // On page load or when changing themes, best to add inline in `head` to avoid FOUC
-      if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      // FIX: The key 'app_theme' now matches the one used in the React useLocalStorage hook.
+      // The value check `'"dark"'` is correct because the hook JSON.stringifies it.
+      if (localStorage.app_theme === '"dark"' || (!('app_theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
         document.documentElement.classList.add('dark')
       } else {
         document.documentElement.classList.remove('dark')
@@ -57,21 +59,26 @@
         // --- CONFIGURACIÓN OPCIONAL ---
         // Cambie estas claves para asegurar su aplicación.
         window.CHURCH_PASSWORD = 'NIMT02';
-        window.ADMIN_PASSWORD = 'admin';
+        window.ADMIN_PASSWORD = 'lldm03';
         window.CHURCH_NAME = 'La Empresa'; // Usado para nombrar archivos de reporte
     </script>
 
-    <script type="importmap">
+<script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@18.2.0",
-    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
-    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-    "lucide-react": "https://esm.sh/lucide-react@0.363.0",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react-dom/client": "https://aistudiocdn.com/react-dom@^19.2.0/client",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.417.0",
+    "path": "https://aistudiocdn.com/path@^0.12.7",
+    "vite": "https://aistudiocdn.com/vite@^7.1.12",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0"
   }
 }
 </script>
     
+<link rel="stylesheet" href="/index.css">
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     <div id="root"></div>
