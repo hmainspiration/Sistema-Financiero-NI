@@ -1,11 +1,11 @@
 
-import React from 'react';
+import React, { FC } from 'react';
 
 interface VersionSelectionScreenProps {
   onSelectVersion: (version: 'completo' | 'sencillo') => void;
 }
 
-const VersionSelectionScreen: React.FC<VersionSelectionScreenProps> = ({ onSelectVersion }) => {
+const VersionSelectionScreen: FC<VersionSelectionScreenProps> = ({ onSelectVersion }) => {
   return (
     <div className="flex items-center justify-center h-screen">
       <div className="w-full max-w-md p-8 space-y-8 text-center bg-white rounded-lg shadow-md dark:bg-gray-800">

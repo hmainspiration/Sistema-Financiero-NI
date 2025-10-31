@@ -1,9 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, FC, Dispatch, SetStateAction, ChangeEvent } from 'react';
 import { WeeklyRecord, Member, Offering, Formulas, ChurchInfo } from '../types';
 import Header from '../components/layout/Header';
 import { CirclePlus, BarChart2, CalendarDays, Trash2, Plus, X } from 'lucide-react';
 import { MONTH_NAMES } from '../constants';
 import { useSupabase } from '../context/SupabaseContext';
+
+// --- Tipos locales ---
+type SimpleTab = 'register' | 'summary' | 'history';
 
 // --- Componentes Internos para la UI Sencilla ---
 
@@ -14,9 +17,9 @@ interface AutocompleteInputProps {
   setValue: (value: string) => void;
 }
 
-const SimpleAutocompleteInput: React.FC<AutocompleteInputProps> = ({ members, onSelect, value, setValue }) => {
+const SimpleAutocompleteInput: FC<AutocompleteInputProps> = ({ members, onSelect, value, setValue }) => {
   const [suggestions, setSuggestions] = useState<Member[]>([]);
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setValue(val);
     if (val) {
@@ -49,7 +52,7 @@ const SimpleAutocompleteInput: React.FC<AutocompleteInputProps> = ({ members, on
 
 // --- Pestañas de la UI Sencilla ---
 
-const RegistroSencilloTab: React.FC<{record: WeeklyRecord, setRecord: React.Dispatch<React.SetStateAction<WeeklyRecord | null>>, members: Member[], setMembers: React.Dispatch<React.SetStateAction<Member[]>>, categories: string[], setCategories: React.Dispatch<React.SetStateAction<string[]>>}> = ({ record, setRecord, members, setMembers, categories, setCategories }) => {
+const RegistroSencilloTab: FC<{record: WeeklyRecord, setRecord: Dispatch<SetStateAction<WeeklyRecord | null>>, members: Member[], setMembers: Dispatch<SetStateAction<Member[]>>, categories: string[], setCategories: Dispatch<SetStateAction<string[]>>}> = ({ record, setRecord, members, setMembers, categories, setCategories }) => {
     const { addItem } = useSupabase();
     const [selectedMember, setSelectedMember] = useState<Member | null>(null);
     const [memberNameInput, setMemberNameInput] = useState('');
@@ -198,7 +201,7 @@ const RegistroSencilloTab: React.FC<{record: WeeklyRecord, setRecord: React.Disp
 };
 
 
-const ResumenSencilloTab: React.FC<{record: WeeklyRecord, categories: string[]}> = ({ record, categories }) => {
+const ResumenSencilloTab: FC<{record: WeeklyRecord, categories: string[]}> = ({ record, categories }) => {
     const totals = useMemo(() => {
         const subtotals: Record<string, number> = {};
         categories.forEach(cat => { subtotals[cat] = 0; });
@@ -212,7 +215,7 @@ const ResumenSencilloTab: React.FC<{record: WeeklyRecord, categories: string[]}>
         return { subtotals, total, diezmoDeDiezmo, remanente, gomerMinistro };
     }, [record, categories]);
     
-    const StatCard: React.FC<{label: string, value: string, color: string}> = ({ label, value, color }) => (
+    const StatCard: FC<{label: string, value: string, color: string}> = ({ label, value, color }) => (
         <div className={`p-6 rounded-2xl shadow-lg ${color}`}>
             <p className="text-lg text-white opacity-90">{label}</p>
             <p className="text-4xl font-bold text-white mt-1">{value}</p>
@@ -247,13 +250,8 @@ const ResumenSencilloTab: React.FC<{record: WeeklyRecord, categories: string[]}>
     );
 };
 
-const HistorialSencilloTab: React.FC<{records: WeeklyRecord[], onSelectRecord: (record: WeeklyRecord) => void, onStartNew: () => void, setActiveTab: (tab: 'register' | 'summary' | 'history') => void}> = ({records, onSelectRecord, onStartNew, setActiveTab}) => {
+const HistorialSencilloTab: FC<{records: WeeklyRecord[], onSelectRecord: (record: WeeklyRecord) => void, onStartNew: () => void }> = ({records, onSelectRecord, onStartNew}) => {
     
-    const handleSelect = (record: WeeklyRecord) => {
-        onSelectRecord(record);
-        setActiveTab('register');
-    }
-
     return (
         <div className="space-y-6">
              <div className="flex justify-between items-center">
@@ -267,7 +265,7 @@ const HistorialSencilloTab: React.FC<{records: WeeklyRecord[], onSelectRecord: (
                     records
                         .sort((a, b) => new Date(b.year, b.month - 1, b.day).getTime() - new Date(a.year, a.month - 1, a.day).getTime())
                         .map(record => (
-                            <button key={record.id} onClick={() => handleSelect(record)} className="w-full text-left p-5 bg-white rounded-xl shadow-md flex justify-between items-center hover:bg-gray-50 transition-colors dark:bg-gray-800 dark:hover:bg-gray-700">
+                            <button key={record.id} onClick={() => onSelectRecord(record)} className="w-full text-left p-5 bg-white rounded-xl shadow-md flex justify-between items-center hover:bg-gray-50 transition-colors dark:bg-gray-800 dark:hover:bg-gray-700">
                                 <div>
                                     <p className="font-bold text-lg text-indigo-900 dark:text-indigo-300">{`Semana del ${record.day} de ${MONTH_NAMES[record.month - 1]}`}</p>
                                     <p className="text-sm text-gray-500 dark:text-gray-400">{record.year} - {record.offerings.length} ofrendas</p>
@@ -285,6 +283,37 @@ const HistorialSencilloTab: React.FC<{records: WeeklyRecord[], onSelectRecord: (
     );
 };
 
+interface SimpleBottomNavProps {
+    activeTab: SimpleTab;
+    setActiveTab: (tab: SimpleTab) => void;
+}
+const navItems = [
+  { id: 'register', label: 'Registrar', icon: CirclePlus },
+  { id: 'summary', label: 'Resumen', icon: BarChart2 },
+  { id: 'history', label: 'Semanas', icon: CalendarDays },
+];
+const SimpleBottomNav: FC<SimpleBottomNavProps> = ({ activeTab, setActiveTab }) => {
+    return (
+        <nav className="fixed bottom-0 left-0 right-0 z-10 bg-white border-t border-gray-200 shadow-t-lg dark:bg-gray-800 dark:border-gray-700">
+            <div className="flex justify-around max-w-4xl mx-auto">
+                {navItems.map((item) => (
+                    <button
+                        key={item.id}
+                        onClick={() => setActiveTab(item.id as SimpleTab)}
+                        className={`flex flex-col items-center justify-center w-full pt-2 pb-1 text-xs transition-colors duration-200 ${
+                        activeTab === item.id ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400'
+                        }`}
+                    >
+                        <item.icon className="w-6 h-6 mb-1" />
+                        <span>{item.label}</span>
+                        {activeTab === item.id && <div className="w-8 h-1 mt-1 rounded-full bg-blue-600 dark:bg-blue-400"></div>}
+                    </button>
+                ))}
+            </div>
+        </nav>
+    );
+};
+
 
 // --- Componente Principal de la App Sencilla ---
 
@@ -297,10 +326,10 @@ interface SimpleAppData {
     churchInfo: ChurchInfo;
 }
 interface SimpleAppHandlers {
-    setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
-    setCategories: React.Dispatch<React.SetStateAction<string[]>>;
-    setWeeklyRecords: React.Dispatch<React.SetStateAction<WeeklyRecord[]>>;
-    setCurrentRecord: React.Dispatch<React.SetStateAction<WeeklyRecord | null>>;
+    setMembers: Dispatch<SetStateAction<Member[]>>;
+    setCategories: Dispatch<SetStateAction<string[]>>;
+    setWeeklyRecords: Dispatch<SetStateAction<WeeklyRecord[]>>;
+    setCurrentRecord: Dispatch<SetStateAction<WeeklyRecord | null>>;
 }
 interface MainAppSencilloProps {
   onLogout: () => void;
@@ -311,18 +340,12 @@ interface MainAppSencilloProps {
   toggleTheme: () => void;
 }
 
-const navItems = [
-  { id: 'register', label: 'Registrar', icon: CirclePlus },
-  { id: 'summary', label: 'Resumen', icon: BarChart2 },
-  { id: 'history', label: 'Semanas', icon: CalendarDays },
-];
-
-const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVersion, data, handlers, theme, toggleTheme }) => {
-    const [activeTab, setActiveTab] = useState<'register' | 'summary' | 'history'>('register');
+const MainAppSencillo: FC<MainAppSencilloProps> = ({ onLogout, onSwitchVersion, data, handlers, theme, toggleTheme }) => {
     const { members, categories, weeklyRecords, currentRecord, formulas, churchInfo } = data;
     const { setMembers, setWeeklyRecords, setCurrentRecord, setCategories } = handlers;
     const { uploadFile, supabase } = useSupabase();
     const [isSaving, setIsSaving] = useState(false);
+    const [activeTab, setActiveTab] = useState<SimpleTab>('register');
     
     const [dateInfo, setDateInfo] = useState({
         day: new Date().getDate().toString(),
@@ -342,7 +365,6 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
         const dayPadded = record.day.toString().padStart(2, '0');
         const fileName = `${dayPadded}-${monthName}-${yearShort}_${churchName.replace(/ /g, '_')}.xlsx`;
     
-        // Generate detailed report with summary
         const subtotals: Record<string, number> = {};
         categories.forEach(cat => { subtotals[cat] = 0; });
         record.offerings.forEach(d => {
@@ -446,51 +468,61 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
           formulas: formulas,
         };
         setCurrentRecord(newRecord);
+        setActiveTab('register');
     };
 
-    const handleDateChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const handleDateChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setDateInfo({ ...dateInfo, [e.target.name]: e.target.value });
     };
+    
+    const handleSelectRecordFromHistory = (record: WeeklyRecord) => {
+        setCurrentRecord(record);
+        setActiveTab('register');
+    };
 
-    const renderContent = () => {
-        if (!currentRecord && activeTab !== 'history') {
-             return (
-                <div className="p-6 bg-white rounded-2xl shadow-lg h-full flex flex-col justify-center dark:bg-gray-800">
-                    <h2 className="text-3xl font-bold text-indigo-900 mb-2 text-center dark:text-indigo-300">Iniciar Nuevo Registro</h2>
-                    <p className="text-gray-500 text-center mb-6 dark:text-gray-400">Seleccione la fecha de la semana a registrar.</p>
-                    <div className="grid grid-cols-1 gap-4">
-                        <div>
-                            <label htmlFor="day-s" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Día</label>
-                            <input type="number" name="day" id="day-s" value={dateInfo.day} onChange={handleDateChange} className="mt-1 block w-full p-3 text-lg border-2 border-gray-200 rounded-xl shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"/>
-                        </div>
-                        <div>
-                            <label htmlFor="month-s" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Mes</label>
-                            <select name="month" id="month-s" value={dateInfo.month} onChange={handleDateChange} className="mt-1 block w-full p-3 text-lg border-2 border-gray-200 rounded-xl shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
-                                {MONTH_NAMES.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}
-                            </select>
-                        </div>
-                        <div>
-                            <label htmlFor="year-s" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Año</label>
-                            <input type="number" name="year" id="year-s" value={dateInfo.year} onChange={handleDateChange} className="mt-1 block w-full p-3 text-lg border-2 border-gray-200 rounded-xl shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"/>
-                        </div>
-                    </div>
-                    <button onClick={handleCreateRecord} className="w-full mt-6 py-4 font-bold text-white text-lg transition duration-300 bg-blue-600 rounded-xl hover:bg-blue-700">
-                        Crear Registro Semanal
-                    </button>
+    const DatePickerComponent = () => (
+        <div className="p-6 bg-white rounded-2xl shadow-lg h-full flex flex-col justify-center dark:bg-gray-800">
+            <h2 className="text-3xl font-bold text-indigo-900 mb-2 text-center dark:text-indigo-300">Iniciar Nuevo Registro</h2>
+            <p className="text-gray-500 text-center mb-6 dark:text-gray-400">Seleccione la fecha de la semana a registrar.</p>
+            <div className="grid grid-cols-1 gap-4">
+                <div>
+                    <label htmlFor="day-s" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Día</label>
+                    <input type="number" name="day" id="day-s" value={dateInfo.day} onChange={handleDateChange} className="mt-1 block w-full p-3 text-lg border-2 border-gray-200 rounded-xl shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"/>
                 </div>
-            );
-        }
-
-        switch (activeTab) {
-            case 'register': return <RegistroSencilloTab record={currentRecord!} setRecord={setCurrentRecord} members={members} setMembers={setMembers} categories={categories} setCategories={setCategories} />;
-            case 'summary': 
-                if (!currentRecord) return <p>Seleccione un registro</p>;
-                return <ResumenSencilloTab record={currentRecord} categories={categories} />;
-            case 'history': return <HistorialSencilloTab records={weeklyRecords} onSelectRecord={setCurrentRecord} onStartNew={startNewRecordFlow} setActiveTab={setActiveTab} />;
-            default: return null;
+                <div>
+                    <label htmlFor="month-s" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Mes</label>
+                    <select name="month" id="month-s" value={dateInfo.month} onChange={handleDateChange} className="mt-1 block w-full p-3 text-lg border-2 border-gray-200 rounded-xl shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100">
+                        {MONTH_NAMES.map((name, index) => <option key={name} value={index + 1}>{name}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label htmlFor="year-s" className="block text-sm font-medium text-gray-700 dark:text-gray-300">Año</label>
+                    <input type="number" name="year" id="year-s" value={dateInfo.year} onChange={handleDateChange} className="mt-1 block w-full p-3 text-lg border-2 border-gray-200 rounded-xl shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100"/>
+                </div>
+            </div>
+            <button onClick={handleCreateRecord} className="w-full mt-6 py-4 font-bold text-white text-lg transition duration-300 bg-blue-600 rounded-xl hover:bg-blue-700">
+                Crear Registro Semanal
+            </button>
+        </div>
+    );
+    
+    const renderContent = () => {
+        switch(activeTab) {
+            case 'register':
+                return currentRecord 
+                    ? <RegistroSencilloTab record={currentRecord} setRecord={setCurrentRecord} members={members} setMembers={setMembers} categories={categories} setCategories={setCategories} />
+                    : <DatePickerComponent />;
+            case 'summary':
+                return currentRecord
+                    ? <ResumenSencilloTab record={currentRecord} categories={categories} />
+                    : <p className="text-center p-8 dark:text-gray-300">Por favor, inicie o seleccione un registro para ver el resumen.</p>;
+            case 'history':
+                return <HistorialSencilloTab records={weeklyRecords} onSelectRecord={handleSelectRecordFromHistory} onStartNew={startNewRecordFlow} />;
+            default:
+                return null;
         }
     };
-    
+
     return (
         <div className="flex flex-col h-screen">
             <Header 
@@ -499,15 +531,13 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
                 showSwitchVersion={true} 
                 theme={theme} 
                 toggleTheme={toggleTheme}
-                navItems={navItems}
-                activeTab={activeTab}
-                setActiveTab={setActiveTab as (tab: string) => void}
             />
-            <main className="flex-grow p-4 pb-4 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+            <main className="flex-grow p-4 pb-24 overflow-y-auto bg-gray-50 dark:bg-gray-900">
                 <div className="max-w-2xl mx-auto h-full">
                     {renderContent()}
-                    {currentRecord && activeTab === 'register' && (
-                        <div className="fixed bottom-6 right-4 z-20">
+
+                    {currentRecord && activeTab !== 'history' && (
+                        <div className="fixed bottom-24 right-4 z-20">
                             <button onClick={handleSaveCurrentRecord} className="px-6 py-4 bg-green-600 text-white font-bold rounded-full shadow-lg hover:bg-green-700 transition-transform hover:scale-105">
                                 Guardar
                             </button>
@@ -515,6 +545,7 @@ const MainAppSencillo: React.FC<MainAppSencilloProps> = ({ onLogout, onSwitchVer
                     )}
                 </div>
             </main>
+             <SimpleBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
             {isSaving && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-6 rounded-lg flex items-center gap-4 dark:bg-gray-800">

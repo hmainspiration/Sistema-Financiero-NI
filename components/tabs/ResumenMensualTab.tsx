@@ -1,6 +1,6 @@
 
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, FC } from 'react';
 import { WeeklyRecord, Formulas } from '../../types';
 import { MONTH_NAMES } from '../../constants';
 
@@ -10,7 +10,7 @@ interface ResumenMensualTabProps {
   formulas: Formulas;
 }
 
-const ResumenMensualTab: React.FC<ResumenMensualTabProps> = ({ records, categories, formulas }) => {
+const ResumenMensualTab: FC<ResumenMensualTabProps> = ({ records, categories, formulas }) => {
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 

@@ -1,14 +1,14 @@
-import React from 'react';
+import React, { useState, FormEvent, FC } from 'react';
 
 interface LoginScreenProps {
   onLogin: (password: string) => void;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLogin }) => {
-  const [password, setPassword] = React.useState('');
-  const [error, setError] = React.useState('');
+const LoginScreen: FC<LoginScreenProps> = ({ onLogin }) => {
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
     if (password) {
       try {

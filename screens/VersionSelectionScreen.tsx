@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { FC } from 'react';
 import { Monitor, Smartphone } from 'lucide-react';
 
 interface VersionSelectionScreenProps {
     onSelect: (version: 'sencillo' | 'completo') => void;
 }
 
-const VersionSelectionScreen: React.FC<VersionSelectionScreenProps> = ({ onSelect }) => {
+const VersionSelectionScreen: FC<VersionSelectionScreenProps> = ({ onSelect }) => {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-indigo-900 to-blue-600 p-4">
             <div className="w-full max-w-md p-8 text-center bg-white rounded-2xl shadow-2xl dark:bg-gray-800">

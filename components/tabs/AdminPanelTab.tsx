@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { Member, Formulas, ChurchInfo } from '../../types';
+import { Member, Formulas, ChurchInfo, Comisionado } from '../../types';
 import { useSupabase } from '../../context/SupabaseContext';
-import { UserPlus, Pencil, Trash2, Check, X, Server, Wifi, AlertTriangle } from 'lucide-react';
+import { UserPlus, Pencil, Trash2, Check, X, Server, Wifi, AlertTriangle, Save } from 'lucide-react';
 
 
 const SupabaseStatusIndicator: React.FC = () => {
@@ -68,8 +68,10 @@ const AdminPanelTab: React.FC<{
     setFormulas: React.Dispatch<React.SetStateAction<Formulas>>;
     churchInfo: ChurchInfo;
     setChurchInfo: React.Dispatch<React.SetStateAction<ChurchInfo>>;
+    comisionados: Comisionado[];
+    setComisionados: React.Dispatch<React.SetStateAction<Comisionado[]>>;
 }> = ({
-    members, setMembers, categories, setCategories, formulas, setFormulas, churchInfo, setChurchInfo
+    members, setMembers, categories, setCategories, formulas, setFormulas, churchInfo, setChurchInfo, comisionados, setComisionados
 }) => {
     const { addItem, updateItem, deleteItem } = useSupabase();
     const [newMemberName, setNewMemberName] = useState('');
@@ -77,7 +79,18 @@ const AdminPanelTab: React.FC<{
     const [tempFormulas, setTempFormulas] = useState<Formulas>(formulas);
     const [tempChurchInfo, setTempChurchInfo] = useState<ChurchInfo>(churchInfo);
     const [editingMember, setEditingMember] = useState<Member | null>(null);
+    const [editingComisionado, setEditingComisionado] = useState<Comisionado | null>(null);
+    const [newComisionado, setNewComisionado] = useState({ nombre: '', cargo: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // Helper function to map Supabase's snake_case to the app's camelCase
+    const mapSupabaseMemberToAppMember = (supabaseMember: any): Member => {
+        return {
+            id: supabaseMember.id,
+            name: supabaseMember.name,
+            isActive: supabaseMember.is_active,
+        };
+    };
 
     const handleAddMember = async () => {
         if (!newMemberName.trim() || members.some(m => m.name.toLowerCase() === newMemberName.trim().toLowerCase())) {
@@ -86,14 +99,25 @@ const AdminPanelTab: React.FC<{
         }
         setIsSubmitting(true);
         try {
-            const newMember = await addItem('members', { name: newMemberName.trim() });
-            setMembers(prev => [...prev, newMember].sort((a,b) => a.name.localeCompare(b.name)));
+            const newMemberFromSupabase = await addItem('members', { name: newMemberName.trim(), is_active: true });
+            const appMember = mapSupabaseMemberToAppMember(newMemberFromSupabase);
+            setMembers(prev => [...prev, appMember].sort((a,b) => a.name.localeCompare(b.name)));
             setNewMemberName('');
         } catch (error) {
             alert(`Error al agregar miembro: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setIsSubmitting(false);
         }
+    };
+    
+    const handleToggleMemberActive = async (id: string, newStatus: boolean) => {
+      try {
+        const updatedMemberFromSupabase = await updateItem('members', id, { is_active: newStatus });
+        const appMember = mapSupabaseMemberToAppMember(updatedMemberFromSupabase);
+        setMembers(prev => prev.map(m => m.id === appMember.id ? appMember : m));
+      } catch (error) {
+        alert(`Error al actualizar estado: ${error instanceof Error ? error.message : String(error)}`);
+      }
     };
 
     const handleStartEdit = (member: Member) => {
@@ -104,8 +128,9 @@ const AdminPanelTab: React.FC<{
         if (editingMember) {
             setIsSubmitting(true);
             try {
-                const updatedMember = await updateItem('members', editingMember.id, { name: editingMember.name });
-                setMembers(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m));
+                const updatedMemberFromSupabase = await updateItem('members', editingMember.id, { name: editingMember.name });
+                const appMember = mapSupabaseMemberToAppMember(updatedMemberFromSupabase);
+                setMembers(prev => prev.map(m => m.id === appMember.id ? appMember : m));
                 setEditingMember(null);
             } catch (error) {
                  alert(`Error al guardar cambios: ${error instanceof Error ? error.message : String(error)}`);
@@ -146,10 +171,6 @@ const AdminPanelTab: React.FC<{
     const handleDeleteCategory = async (catToDelete: string) => {
         if (window.confirm("¿Seguro que quiere eliminar esta categoría?")) {
             try {
-                // We need to find the category's ID to delete it from the DB
-                // This is a limitation of storing categories as a simple string array in state.
-                // A better approach would be to store them as objects with IDs, like members.
-                // For now, we assume names are unique and can be used to find the item to delete.
                 const categoryToDelete = await (window as any).supabase.from('categories').select('id').eq('name', catToDelete).single();
                 if (categoryToDelete.data) {
                     await deleteItem('categories', categoryToDelete.data.id);
@@ -183,6 +204,51 @@ const AdminPanelTab: React.FC<{
         alert("Información predeterminada guardada.");
     };
 
+    // --- Comisionados Handlers ---
+    const handleAddComisionado = async () => {
+        if (!newComisionado.nombre.trim() || !newComisionado.cargo.trim()) {
+            alert('Nombre y cargo son requeridos.');
+            return;
+        }
+        setIsSubmitting(true);
+        try {
+            const added = await addItem('comisionados', newComisionado);
+            setComisionados(prev => [...prev, added]);
+            setNewComisionado({ nombre: '', cargo: '' });
+        } catch (error) {
+            alert(`Error al agregar comisionado: ${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    const handleSaveComisionado = async () => {
+        if (editingComisionado) {
+            setIsSubmitting(true);
+            try {
+                const { id, nombre, cargo } = editingComisionado;
+                const updated = await updateItem('comisionados', id, { nombre, cargo });
+                setComisionados(prev => prev.map(c => c.id === id ? updated : c));
+                setEditingComisionado(null);
+            } catch (error) {
+                alert(`Error al guardar comisionado: ${error instanceof Error ? error.message : String(error)}`);
+            } finally {
+                setIsSubmitting(false);
+            }
+        }
+    };
+    
+    const handleDeleteComisionado = async (id: string) => {
+        if (window.confirm("¿Seguro que quiere eliminar a este miembro de la comisión?")) {
+            try {
+                await deleteItem('comisionados', id);
+                setComisionados(prev => prev.filter(c => c.id !== id));
+            } catch (error) {
+                alert(`Error al eliminar comisionado: ${error instanceof Error ? error.message : String(error)}`);
+            }
+        }
+    };
+
     return (
         <div className="space-y-8">
             <h2 className="text-2xl font-bold text-indigo-900 dark:text-white">Panel de Administración</h2>
@@ -197,19 +263,36 @@ const AdminPanelTab: React.FC<{
             </div>
 
             <div className="p-6 bg-white rounded-xl shadow-lg dark:bg-gray-800">
-                <h3 className="text-xl font-bold text-indigo-900 mb-4 dark:text-indigo-300">Información Predeterminada</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <input type="text" name="defaultMinister" value={tempChurchInfo.defaultMinister} onChange={handleChurchInfoChange} placeholder="Nombre Ministro Predeterminado" className="p-2 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
-                    <input type="text" name="ministerGrade" value={tempChurchInfo.ministerGrade} onChange={handleChurchInfoChange} placeholder="Grado Ministro" className="p-2 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
-                    <input type="text" name="district" value={tempChurchInfo.district} onChange={handleChurchInfoChange} placeholder="Distrito" className="p-2 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
-                    <input type="text" name="department" value={tempChurchInfo.department} onChange={handleChurchInfoChange} placeholder="Departamento" className="p-2 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
-                    <input type="text" name="ministerPhone" value={tempChurchInfo.ministerPhone} onChange={handleChurchInfoChange} placeholder="Tel. Ministro" className="p-2 border border-gray-300 rounded-md shadow-sm dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 dark:placeholder-gray-400"/>
+                <h3 className="text-xl font-bold text-indigo-900 mb-4 dark:text-indigo-300">Gestionar Comisión de Finanzas</h3>
+                <div className="flex flex-col sm:flex-row gap-2 mb-4">
+                    <input type="text" value={newComisionado.nombre} onChange={e => setNewComisionado(p => ({ ...p, nombre: e.target.value }))} placeholder="Nombre completo" className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+                    <input type="text" value={newComisionado.cargo} onChange={e => setNewComisionado(p => ({ ...p, cargo: e.target.value }))} placeholder="Cargo (e.g., Finanzas)" className="flex-grow p-2 border rounded-md dark:bg-gray-700 dark:border-gray-600"/>
+                    <button onClick={handleAddComisionado} disabled={isSubmitting} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"><UserPlus className="w-5 h-5"/></button>
                 </div>
-                <button onClick={handleSaveChurchInfo} className="mt-4 w-full sm:w-auto px-6 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 transition-colors">
-                    Guardar Información
-                </button>
+                <ul className="space-y-2 max-h-60 overflow-y-auto">
+                    {comisionados.map(c => (
+                        <li key={c.id} className="flex justify-between items-center p-2 bg-gray-50 rounded-md dark:bg-gray-700/50">
+                             {editingComisionado?.id === c.id ? (
+                                <>
+                                    <input type="text" value={editingComisionado.nombre} onChange={e => setEditingComisionado({...editingComisionado, nombre: e.target.value})} className="flex-grow p-1 mr-2 border rounded-md" />
+                                    <input type="text" value={editingComisionado.cargo} onChange={e => setEditingComisionado({...editingComisionado, cargo: e.target.value})} className="w-32 p-1 border rounded-md" />
+                                    <button onClick={handleSaveComisionado} disabled={isSubmitting} className="text-green-600 p-1 ml-2"><Check/></button>
+                                    <button onClick={() => setEditingComisionado(null)} className="text-red-600 p-1"><X/></button>
+                                </>
+                             ) : (
+                                <>
+                                    <div><span className="font-semibold">{c.nombre}</span> <span className="text-sm text-gray-500">({c.cargo})</span></div>
+                                    <div className="flex items-center gap-3">
+                                        <button onClick={() => setEditingComisionado(JSON.parse(JSON.stringify(c)))} className="text-blue-600"><Pencil className="w-5 h-5"/></button>
+                                        <button onClick={() => handleDeleteComisionado(c.id)} className="text-red-600"><Trash2 className="w-5 h-5"/></button>
+                                    </div>
+                                </>
+                             )}
+                        </li>
+                    ))}
+                </ul>
             </div>
-
+            
             <div className="p-6 bg-white rounded-xl shadow-lg dark:bg-gray-800">
                 <h3 className="text-xl font-bold text-indigo-900 mb-4 dark:text-indigo-300">Gestionar Miembros</h3>
                 <div className="flex gap-2 mb-4">
@@ -237,7 +320,15 @@ const AdminPanelTab: React.FC<{
                                 </>
                             ) : (
                                 <>
-                                    <span className="dark:text-gray-200">{m.name}</span>
+                                    <div className="flex items-center gap-3">
+                                        <input
+                                            type="checkbox"
+                                            className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 dark:bg-gray-900 dark:border-gray-600 dark:checked:bg-blue-600 dark:checked:border-blue-600"
+                                            checked={m.isActive}
+                                            onChange={(e) => handleToggleMemberActive(m.id, e.target.checked)}
+                                        />
+                                        <span className={`dark:text-gray-200 ${!m.isActive && 'line-through text-gray-400'}`}>{m.name}</span>
+                                    </div>
                                     <div className="flex items-center gap-3">
                                         <button onClick={() => handleStartEdit(m)} className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"><Pencil className="w-5 h-5"/></button>
                                         <button onClick={() => handleDeleteMember(m.id)} className="text-red-600 hover:text-red-800 dark:text-red-400 dark:hover:text-red-300"><Trash2 className="w-5 h-5"/></button>

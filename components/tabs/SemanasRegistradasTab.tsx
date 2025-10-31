@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, Dispatch, SetStateAction, FC, ChangeEvent } from 'react';
 import { WeeklyRecord, Member, Offering, Formulas, ChurchInfo } from '../../types';
 import { Pencil, Trash2, X, Plus, CloudUpload, FileDown, Download } from 'lucide-react';
 import { MONTH_NAMES } from '../../constants';
@@ -10,11 +10,11 @@ interface AutocompleteInputProps {
   onSelect: (member: Member) => void;
 }
 
-const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ members, onSelect }) => {
+const AutocompleteInput: FC<AutocompleteInputProps> = ({ members, onSelect }) => {
   const [inputValue, setInputValue] = useState('');
   const [suggestions, setSuggestions] = useState<Member[]>([]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputValue(value);
     if (value) {
@@ -59,9 +59,9 @@ const AutocompleteInput: React.FC<AutocompleteInputProps> = ({ members, onSelect
 };
 
 
-const UploadedReportsList: React.FC<{
+const UploadedReportsList: FC<{
     records: WeeklyRecord[];
-    setRecords: React.Dispatch<React.SetStateAction<WeeklyRecord[]>>;
+    setRecords: Dispatch<SetStateAction<WeeklyRecord[]>>;
     formulas: Formulas;
     churchInfo: ChurchInfo;
 }> = ({ records, setRecords, formulas, churchInfo }) => {
@@ -209,14 +209,14 @@ const UploadedReportsList: React.FC<{
 
 interface SemanasRegistradasTabProps {
   records: WeeklyRecord[];
-  setRecords: React.Dispatch<React.SetStateAction<WeeklyRecord[]>>;
+  setRecords: Dispatch<SetStateAction<WeeklyRecord[]>>;
   members: Member[];
   categories: string[];
   formulas: Formulas;
   churchInfo: ChurchInfo;
 }
 
-const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, setRecords, members, categories, formulas, churchInfo }) => {
+const SemanasRegistradasTab: FC<SemanasRegistradasTabProps> = ({ records, setRecords, members, categories, formulas, churchInfo }) => {
   const [editingRecord, setEditingRecord] = useState<WeeklyRecord | null>(null);
   const [tempRecord, setTempRecord] = useState<WeeklyRecord | null>(null);
   const [isUploading, setIsUploading] = useState<string | null>(null);
@@ -256,7 +256,7 @@ const SemanasRegistradasTab: React.FC<SemanasRegistradasTabProps> = ({ records, 
     }
   };
 
-  const handleModalInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleModalInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     if (tempRecord) {
       const { name, value } = e.target;
       setTempRecord({ ...tempRecord, [name]: value });

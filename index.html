@@ -15,54 +15,67 @@
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      // Enable class-based dark mode in Tailwind
+      // Enable class-based dark mode in Tailwind and add primary colors
       tailwind.config = {
         darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: {
+                '50': '#eff6ff',
+                '100': '#dbeafe',
+                '200': '#bfdbfe',
+                '300': '#93c5fd',
+                '400': '#60a5fa',
+                '500': '#3b82f6',
+                '600': '#2563eb',
+                '700': '#1d4ed8',
+                '800': '#1e40af',
+                '900': '#1e3a8a',
+              },
+            }
+          }
+        }
       }
     </script>
     <!-- SheetJS (XLSX) for Excel Export -->
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-    <!-- jsPDF for PDF Generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- jsPDF AutoTable plugin -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Supabase for Database and Storage -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script type="importmap">
+    <!-- jsPDF for PDF generation -->
+    <script src="https://unpkg.com/jspdf@latest/dist/jspdf.umd.min.js"></script>
+    <script src="https://unpkg.com/jspdf-autotable@latest/dist/jspdf.plugin.autotable.js"></script>
+    
+    <!-- App Configuration -->
+    <script>
+        // --- CONFIGURACIÓN REQUERIDA ---
+        // Pegue aquí sus credenciales de Supabase.
+        // Puede encontrarlas en su panel de Supabase > Project Settings > API.
+        window.SUPABASE_URL = 'https://gciwhtxjwqwblnhwlgtb.supabase.co'; 
+        window.SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdjaXdodHhqd3F3YmxuaHdsZ3RiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwMjY1MjIsImV4cCI6MjA3NTYwMjUyMn0.d8EI8ArxmYiiZQKsvXVT9g-VzZcyyAYXciSoDPiIbN4';
+
+        // --- CONFIGURACIÓN OPCIONAL ---
+        // Cambie estas claves para asegurar su aplicación.
+        window.CHURCH_PASSWORD = 'NIMT02';
+        window.ADMIN_PASSWORD = 'admin';
+        window.CHURCH_NAME = 'La Empresa'; // Usado para nombrar archivos de reporte
+    </script>
+
+    <script type="importmap">
 {
   "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react": "https://esm.sh/react@18.2.0",
+    "react/jsx-runtime": "https://esm.sh/react@18.2.0/jsx-runtime",
+    "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+    "lucide-react": "https://esm.sh/lucide-react@0.363.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.417.0"
+    "react/": "https://aistudiocdn.com/react@^19.2.0/"
   }
 }
 </script>
-<link rel="stylesheet" href="/index.css">
+    
 </head>
-<body class="bg-gray-100 dark:bg-gray-900">
-    <noscript>You need to enable JavaScript to run this app.</noscript>
-    
-    <script>
-      // --- CONFIGURACIÓN DE LA APLICACIÓN ---
-      // Para conectar la aplicación a Supabase y configurar el inicio de sesión,
-      // reemplace los valores de marcador de posición a continuación con sus credenciales reales.
-      // Estas variables son seguras de exponer en el navegador porque la seguridad de Supabase 
-      // se gestiona mediante Row Level Security (RLS).
-      
-      // 1. Vaya a su proyecto de Supabase -> Settings -> API.
-      // 2. Copie la 'Project URL'
-      window.SUPABASE_URL = "https://gciwhtxjwqwblnhwlgtb.supabase.co"; 
-
-      // 3. En la misma página, copie la clave 'anon' 'public'.
-      window.SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdjaXdodHhqd3F3YmxuaHdsZ3RiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwMjY1MjIsImV4cCI6MjA3NTYwMjUyMn0.d8EI8ArxmYiiZQKsvXVT9g-VzZcyyAYXciSoDPiIbN4";
-
-      // 4. (Opcional) Configure las credenciales de inicio de sesión personalizadas.
-      // Si no se definen, se usarán los valores predeterminados.
-      window.CHURCH_NAME = "La Empresa";
-      window.CHURCH_PASSWORD = "NIMT02";
-    </script>
-    
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
 </body>

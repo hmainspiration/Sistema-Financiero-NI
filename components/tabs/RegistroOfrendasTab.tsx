@@ -1,16 +1,16 @@
 // Fix: Implemented a full functional component instead of a placeholder.
-import React, { useState } from 'react';
+import React, { useState, ChangeEvent, Dispatch, SetStateAction, FC } from 'react';
 import { WeeklyRecord, Member, Offering, Formulas, ChurchInfo } from '../../types';
 import { MONTH_NAMES } from '../../constants';
 import { Trash2, Plus, Calendar, X } from 'lucide-react';
 import { useSupabase } from '../../context/SupabaseContext';
 
 // Autocomplete component, similar to the one in SemanasRegistradasTab
-const AutocompleteInput: React.FC<{ members: Member[], onSelect: (member: Member) => void }> = ({ members, onSelect }) => {
+const AutocompleteInput: FC<{ members: Member[], onSelect: (member: Member) => void }> = ({ members, onSelect }) => {
     const [inputValue, setInputValue] = useState('');
     const [suggestions, setSuggestions] = useState<Member[]>([]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setInputValue(value);
         if (value) {
@@ -46,11 +46,11 @@ const AutocompleteInput: React.FC<{ members: Member[], onSelect: (member: Member
 
 interface RegistroOfrendasTabProps {
   currentRecord: WeeklyRecord | null;
-  setCurrentRecord: React.Dispatch<React.SetStateAction<WeeklyRecord | null>>;
+  setCurrentRecord: Dispatch<SetStateAction<WeeklyRecord | null>>;
   members: Member[];
-  setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
+  setMembers: Dispatch<SetStateAction<Member[]>>;
   categories: string[];
-  setCategories: React.Dispatch<React.SetStateAction<string[]>>;
+  setCategories: Dispatch<SetStateAction<string[]>>;
   onSaveRecord: () => void;
   onStartNew: () => void;
   defaultFormulas: Formulas;
@@ -58,7 +58,7 @@ interface RegistroOfrendasTabProps {
   churchInfo: ChurchInfo;
 }
 
-const RegistroOfrendasTab: React.FC<RegistroOfrendasTabProps> = ({
+const RegistroOfrendasTab: FC<RegistroOfrendasTabProps> = ({
   currentRecord, setCurrentRecord, members, setMembers, categories, setCategories, onSaveRecord, onStartNew, defaultFormulas, churchInfo
 }) => {
     const { addItem } = useSupabase();

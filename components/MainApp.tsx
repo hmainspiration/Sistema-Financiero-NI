@@ -1,8 +1,8 @@
 
-import React from 'react';
+import React, { FC } from 'react';
 
 // This component receives all state and handlers but is just a placeholder for now.
-const MainApp: React.FC<any> = (props) => {
+const MainApp: FC<any> = (props) => {
   return (
     <div className="p-8">
       <h1 className="text-4xl font-bold text-primary-600 dark:text-primary-400">Main Application (Completo)</h1>

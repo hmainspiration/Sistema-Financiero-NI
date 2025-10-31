@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { FC } from 'react';
 import { Tab } from '../../types';
 import { CirclePlus, BarChart2, CalendarDays, PieChart, Settings, FileText } from 'lucide-react';
 
@@ -16,7 +16,7 @@ const navItems = [
   { id: 'admin', label: 'Admin', icon: Settings },
 ];
 
-const BottomNav: React.FC<BottomNavProps> = ({ activeTab, setActiveTab }) => {
+const BottomNav: FC<BottomNavProps> = ({ activeTab, setActiveTab }) => {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-10 bg-white border-t border-gray-200 shadow-t-lg dark:bg-gray-800 dark:border-gray-700">
       <div className="flex justify-around max-w-4xl mx-auto">

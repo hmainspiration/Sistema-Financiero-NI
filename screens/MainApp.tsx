@@ -1,19 +1,17 @@
-import React, { useState } from 'react';
-import { Tab, WeeklyRecord, Member, Formulas, MonthlyReport, ChurchInfo } from '../types';
+import React, { useState, Dispatch, SetStateAction, FC } from 'react';
+import { WeeklyRecord, Member, Formulas, MonthlyReport, ChurchInfo, Comisionado, Tab } from '../types';
 import Header from '../components/layout/Header';
-// import BottomNav from '../components/layout/BottomNav'; // No longer used
+import BottomNav from '../components/layout/BottomNav';
 import RegistroOfrendasTab from '../components/tabs/RegistroOfrendasTab';
 import ResumenFinancieroTab from '../components/tabs/ResumenFinancieroTab';
 import SemanasRegistradasTab from '../components/tabs/SemanasRegistradasTab';
 import ResumenMensualTab from '../components/tabs/ResumenMensualTab';
 import AdminPanelTab from '../components/tabs/AdminPanelTab';
 import InformeMensualTab from '../components/tabs/InformeMensualTab';
+import AdminLoginModal from '../components/AdminLoginModal';
 import { useSupabase } from '../context/SupabaseContext';
 import { MONTH_NAMES } from '../constants';
-import { CirclePlus, BarChart2, CalendarDays, PieChart, Settings, FileText } from 'lucide-react';
 
-
-// Define props based on what App.tsx passes
 interface AppData {
     members: Member[];
     categories: string[];
@@ -22,16 +20,18 @@ interface AppData {
     formulas: Formulas;
     monthlyReports: MonthlyReport[];
     churchInfo: ChurchInfo;
+    comisionados: Comisionado[];
 }
 
 interface AppHandlers {
-    setMembers: React.Dispatch<React.SetStateAction<Member[]>>;
-    setCategories: React.Dispatch<React.SetStateAction<string[]>>;
-    setWeeklyRecords: React.Dispatch<React.SetStateAction<WeeklyRecord[]>>;
-    setCurrentRecord: React.Dispatch<React.SetStateAction<WeeklyRecord | null>>;
-    setFormulas: React.Dispatch<React.SetStateAction<Formulas>>;
-    setMonthlyReports: React.Dispatch<React.SetStateAction<MonthlyReport[]>>;
-    setChurchInfo: React.Dispatch<React.SetStateAction<ChurchInfo>>;
+    setMembers: Dispatch<SetStateAction<Member[]>>;
+    setCategories: Dispatch<SetStateAction<string[]>>;
+    setWeeklyRecords: Dispatch<SetStateAction<WeeklyRecord[]>>;
+    setCurrentRecord: Dispatch<SetStateAction<WeeklyRecord | null>>;
+    setFormulas: Dispatch<SetStateAction<Formulas>>;
+    setMonthlyReports: Dispatch<SetStateAction<MonthlyReport[]>>;
+    setChurchInfo: Dispatch<SetStateAction<ChurchInfo>>;
+    setComisionados: Dispatch<SetStateAction<Comisionado[]>>;
 }
 
 interface MainAppProps {
@@ -43,23 +43,31 @@ interface MainAppProps {
   toggleTheme: () => void;
 }
 
-const navItems = [
-  { id: 'register', label: 'Registro', icon: CirclePlus },
-  { id: 'summary', label: 'Resumen', icon: BarChart2 },
-  { id: 'history', label: 'Semanas', icon: CalendarDays },
-  { id: 'monthly', label: 'Mensual', icon: PieChart },
-  { id: 'informe', label: 'Informe', icon: FileText },
-  { id: 'admin', label: 'Admin', icon: Settings },
-];
-
-const MainApp: React.FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, handlers, theme, toggleTheme }) => {
+const MainApp: FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, handlers, theme, toggleTheme }) => {
   const [activeTab, setActiveTab] = useState<Tab>('register');
   const [isSaving, setIsSaving] = useState(false);
+  const [showAdminLogin, setShowAdminLogin] = useState(false);
+  const [isAdminVerified, setIsAdminVerified] = useState(false);
   const { uploadFile, supabase } = useSupabase();
   
-  // Destructure props for easier use
-  const { members, categories, weeklyRecords, currentRecord, formulas, monthlyReports, churchInfo } = data;
-  const { setMembers, setCategories, setWeeklyRecords, setCurrentRecord, setFormulas, setMonthlyReports, setChurchInfo } = handlers;
+  const { members, categories, weeklyRecords, currentRecord, formulas, monthlyReports, churchInfo, comisionados } = data;
+  const { setMembers, setCategories, setWeeklyRecords, setCurrentRecord, setFormulas, setMonthlyReports, setChurchInfo, setComisionados } = handlers;
+
+  const handleAdminClick = () => {
+    if (isAdminVerified) {
+      setActiveTab('admin');
+    } else {
+      setShowAdminLogin(true);
+    }
+  };
+  
+  const setActiveTabAndCheckAdmin = (tab: Tab) => {
+    if (tab === 'admin') {
+      handleAdminClick();
+    } else {
+      setActiveTab(tab);
+    }
+  };
 
   const uploadRecordToSupabase = async (record: WeeklyRecord) => {
     if (!supabase) {
@@ -73,7 +81,6 @@ const MainApp: React.FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, hand
     const dayPadded = record.day.toString().padStart(2, '0');
     const fileName = `${dayPadded}-${monthName}-${yearShort}_${churchName.replace(/ /g, '_')}.xlsx`;
 
-    // Generate detailed report with summary
     const subtotals: Record<string, number> = {};
     categories.forEach(cat => { subtotals[cat] = 0; });
     record.offerings.forEach(d => {
@@ -160,81 +167,89 @@ const MainApp: React.FC<MainAppProps> = ({ onLogout, onSwitchVersion, data, hand
   };
 
   const renderContent = () => {
-    switch (activeTab) {
+    switch(activeTab) {
       case 'register':
-        return (
-          // FIX: Corrected component props to match definition.
-          <RegistroOfrendasTab
-            currentRecord={currentRecord}
-            setCurrentRecord={setCurrentRecord}
-            members={members}
-            setMembers={setMembers}
-            categories={categories}
-            setCategories={setCategories}
-            onSaveRecord={handleSaveCurrentRecord}
-            onStartNew={startNewRecord}
-            defaultFormulas={formulas}
-            weeklyRecords={weeklyRecords}
-            churchInfo={churchInfo}
-          />
-        );
+        return <RegistroOfrendasTab
+                  currentRecord={currentRecord}
+                  setCurrentRecord={setCurrentRecord}
+                  members={members}
+                  setMembers={setMembers}
+                  categories={categories}
+                  setCategories={setCategories}
+                  onSaveRecord={handleSaveCurrentRecord}
+                  onStartNew={startNewRecord}
+                  defaultFormulas={formulas}
+                  weeklyRecords={weeklyRecords}
+                  churchInfo={churchInfo}
+               />;
       case 'summary':
-        // FIX: Corrected component props to match definition.
-        return <ResumenFinancieroTab currentRecord={currentRecord} categories={categories} />;
+        return <ResumenFinancieroTab currentRecord={currentRecord} weeklyRecords={weeklyRecords} categories={categories} />;
       case 'history':
         return <SemanasRegistradasTab 
-                    records={weeklyRecords} 
-                    setRecords={setWeeklyRecords}
-                    members={members}
-                    categories={categories}
-                    formulas={formulas}
-                    churchInfo={churchInfo}
-                />;
+                  records={weeklyRecords} 
+                  setRecords={setWeeklyRecords}
+                  members={members}
+                  categories={categories}
+                  formulas={formulas}
+                  churchInfo={churchInfo}
+               />;
       case 'monthly':
         return <ResumenMensualTab records={weeklyRecords} categories={categories} formulas={formulas} />;
       case 'informe':
         return <InformeMensualTab 
-                    records={weeklyRecords} 
-                    formulas={formulas} 
-                    savedReports={monthlyReports}
-                    setSavedReports={setMonthlyReports}
-                    churchInfo={churchInfo}
-                />;
+                  records={weeklyRecords} 
+                  formulas={formulas} 
+                  savedReports={monthlyReports}
+                  setSavedReports={setMonthlyReports}
+                  churchInfo={churchInfo}
+                  comisionados={comisionados}
+                  members={members}
+               />;
       case 'admin':
-        return (
-          <AdminPanelTab
-            members={members}
-            setMembers={setMembers}
-            categories={categories}
-            setCategories={setCategories}
-            formulas={formulas}
-            setFormulas={setFormulas}
-            churchInfo={churchInfo}
-            setChurchInfo={setChurchInfo}
-          />
-        );
+        return isAdminVerified ? (
+            <AdminPanelTab
+                members={members}
+                setMembers={setMembers}
+                categories={categories}
+                setCategories={setCategories}
+                formulas={formulas}
+                setFormulas={setFormulas}
+                churchInfo={churchInfo}
+                setChurchInfo={setChurchInfo}
+                comisionados={comisionados}
+                setComisionados={setComisionados}
+            />
+        ) : null;
       default:
         return null;
     }
-  };
+  }
 
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col min-h-screen">
+      {showAdminLogin && (
+        <AdminLoginModal
+          onClose={() => setShowAdminLogin(false)}
+          onSuccess={() => {
+            setIsAdminVerified(true);
+            setShowAdminLogin(false);
+            setActiveTab('admin');
+          }}
+        />
+      )}
       <Header 
         onLogout={onLogout} 
         onSwitchVersion={onSwitchVersion} 
         showSwitchVersion={true} 
         theme={theme} 
         toggleTheme={toggleTheme}
-        navItems={navItems}
-        activeTab={activeTab}
-        setActiveTab={setActiveTab as (tab: string) => void}
       />
-      <main className="flex-grow p-4 pb-4 overflow-y-auto bg-gray-50 dark:bg-gray-900">
+      <main className="flex-grow p-4 pb-24 overflow-y-auto bg-gray-50 dark:bg-gray-900">
         <div className="max-w-4xl mx-auto">
          {renderContent()}
         </div>
       </main>
+      <BottomNav activeTab={activeTab} setActiveTab={setActiveTabAndCheckAdmin} />
        {isSaving && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                 <div className="bg-white p-6 rounded-lg flex items-center gap-4 dark:bg-gray-800">

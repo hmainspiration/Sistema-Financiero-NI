@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect, useCallback, FC } from 'react';
 
 // This assumes the Supabase client library is loaded via a script tag in index.html
 declare global {
@@ -19,8 +19,8 @@ interface SupabaseContextType {
     // Database table functions
     fetchItems: (tableName: string) => Promise<any[]>;
     addItem: (tableName: string, item: object) => Promise<any>;
-    updateItem: (tableName: string, id: string, updates: object) => Promise<any>;
-    deleteItem: (tableName: string, id: string) => Promise<any>;
+    updateItem: (tableName: string, id: any, updates: object) => Promise<any>;
+    deleteItem: (tableName: string, id: any) => Promise<any>;
 }
 
 const SupabaseContext = createContext<SupabaseContextType | undefined>(undefined);
@@ -33,7 +33,7 @@ export const useSupabase = (): SupabaseContextType => {
     return context;
 };
 
-export const SupabaseProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+export const SupabaseProvider: FC<{ children: ReactNode }> = ({ children }) => {
     const [supabase, setSupabase] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
 
@@ -87,7 +87,8 @@ export const SupabaseProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const fetchItems = useCallback(async (tableName: string) => {
         if (!supabase) throw new Error("Supabase client not initialized.");
-        const { data, error: fetchError } = await supabase.from(tableName).select('*').order('name', { ascending: true });
+        // FIX: Removed default ordering by 'name' to support tables without that column (e.g., 'comisionados').
+        const { data, error: fetchError } = await supabase.from(tableName).select('*');
         if (fetchError) {
             setError(fetchError.message);
             throw fetchError;
@@ -105,7 +106,7 @@ export const SupabaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         return data[0];
     }, [supabase]);
 
-    const updateItem = useCallback(async (tableName: string, id: string, updates: object) => {
+    const updateItem = useCallback(async (tableName: string, id: any, updates: object) => {
         if (!supabase) throw new Error("Supabase client not initialized.");
         const { data, error: updateError } = await supabase.from(tableName).update(updates).eq('id', id).select();
         if (updateError) {
@@ -115,7 +116,7 @@ export const SupabaseProvider: React.FC<{ children: ReactNode }> = ({ children }
         return data[0];
     }, [supabase]);
 
-    const deleteItem = useCallback(async (tableName: string, id: string) => {
+    const deleteItem = useCallback(async (tableName: string, id: any) => {
         if (!supabase) throw new Error("Supabase client not initialized.");
         const { error: deleteError } = await supabase.from(tableName).delete().eq('id', id);
         if (deleteError) {

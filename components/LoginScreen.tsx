@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, FC, KeyboardEvent } from 'react';
 import { Lock, Eye, EyeOff } from 'lucide-react';
 import { APP_VERSION } from '../constants';
 
@@ -6,7 +6,7 @@ interface LoginScreenProps {
   onLoginSuccess: () => void;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
+const LoginScreen: FC<LoginScreenProps> = ({ onLoginSuccess }) => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -25,7 +25,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onLoginSuccess }) => {
     }
   };
   
-  const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyPress = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Enter') {
       handleLogin();
     }

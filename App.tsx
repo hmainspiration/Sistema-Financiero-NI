@@ -1,15 +1,15 @@
 // Fix: Implemented the main App component with routing and state management.
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Dispatch, SetStateAction, FC } from 'react';
 import LoginScreen from './components/LoginScreen';
 import VersionSelectionScreen from './screens/VersionSelectionScreen';
 import MainApp from './screens/MainApp';
 import MainAppSencillo from './screens/MainAppSencillo';
 import { useSupabase } from './context/SupabaseContext';
-import { Member, WeeklyRecord, Formulas, MonthlyReport, ChurchInfo } from './types';
+import { Member, WeeklyRecord, Formulas, MonthlyReport, ChurchInfo, Comisionado } from './types';
 import { INITIAL_MEMBERS, INITIAL_CATEGORIES, DEFAULT_FORMULAS, DEFAULT_CHURCH_INFO } from './constants';
 
 // A custom hook to manage state in localStorage
-function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<React.SetStateAction<T>>] {
+function useLocalStorage<T>(key: string, initialValue: T): [T, Dispatch<SetStateAction<T>>] {
     const [storedValue, setStoredValue] = useState<T>(() => {
         try {
             const item = window.localStorage.getItem(key);
@@ -33,7 +33,7 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, React.Dispatch<Re
     return [storedValue, setValue];
 }
 
-const App: React.FC = () => {
+const App: FC = () => {
     const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
     const [appVersion, setAppVersion] = useState<'completo' | 'sencillo' | null>(null);
     const { supabase, error: supabaseError, fetchItems, addItem } = useSupabase();
@@ -41,6 +41,7 @@ const App: React.FC = () => {
     // --- State Management ---
     const [members, setMembers] = useState<Member[]>([]);
     const [categories, setCategories] = useState<string[]>([]);
+    const [comisionados, setComisionados] = useState<Comisionado[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [loadingMessage, setLoadingMessage] = useState("Cargando datos desde la nube...");
 
@@ -105,18 +106,21 @@ const App: React.FC = () => {
             const loadInitialData = async () => {
                 setIsLoading(true);
                 try {
-                    let fetchedMembers = await fetchItems('members');
-                    let fetchedCategories = await fetchItems('categories');
-
+                    setLoadingMessage("Cargando datos de la iglesia...");
+                    let [fetchedMembers, fetchedCategories, fetchedComisionados] = await Promise.all([
+                        fetchItems('members'),
+                        fetchItems('categories'),
+                        fetchItems('comisionados')
+                    ]);
+                    
                     // If database is empty, seed with initial data from constants
                     if (fetchedMembers.length === 0) {
                         setLoadingMessage("Configurando su base de datos por primera vez (Miembros)...");
                         for (const member of INITIAL_MEMBERS) {
-                           await addItem('members', { name: member.name });
+                           await addItem('members', { name: member.name, is_active: member.isActive });
                         }
                         fetchedMembers = await fetchItems('members'); // Refetch after seeding
                     }
-                    setMembers(fetchedMembers);
                     
                     if (fetchedCategories.length === 0) {
                         setLoadingMessage("Configurando su base de datos por primera vez (Categorías)...");
@@ -126,12 +130,28 @@ const App: React.FC = () => {
                          const refetchedCategories = await fetchItems('categories');
                          fetchedCategories = refetchedCategories;
                     }
-                    setCategories(fetchedCategories.map((c: any) => c.name));
+                    
+                    // FIX: Map snake_case from Supabase (is_active) to camelCase for the app (isActive).
+                    const mappedMembers = fetchedMembers.map((m: any) => ({
+                      id: m.id,
+                      name: m.name,
+                      isActive: m.is_active,
+                    }));
+
+                    setMembers(mappedMembers.sort((a, b) => a.name.localeCompare(b.name)));
+                    setCategories(fetchedCategories.map((c: any) => c.name).sort());
+                    setComisionados(fetchedComisionados.sort((a, b) => a.nombre.localeCompare(b.nombre)));
                     
                 } catch (error) {
-                    // FIX: Improved error logging to show a clear message instead of "[object Object]".
-                    const errorMessage = error instanceof Error ? error.message : String(error);
+                    let errorMessage = "Ocurrió un error desconocido al obtener los datos.";
+                    // FIX: Improved error object inspection to show meaningful messages.
+                    if (error && typeof error === 'object' && 'message' in error) {
+                        errorMessage = String((error as { message: string }).message);
+                    } else if (error instanceof Error) {
+                        errorMessage = error.message;
+                    }
                     console.error("Failed to fetch initial data from Supabase:", errorMessage);
+                    alert(`Fallo al obtener datos de la nube: ${errorMessage}\n\nUsando datos locales de respaldo.`);
                     
                     // Fallback to constants if fetch fails
                     console.warn("Falling back to initial constant data due to Supabase fetch error.");
@@ -212,8 +232,8 @@ const App: React.FC = () => {
         return <VersionSelectionScreen onSelect={handleSelectVersion} />;
     }
     
-    const appData = { members, categories, weeklyRecords, currentRecord, formulas, monthlyReports, churchInfo };
-    const appHandlers = { setMembers, setCategories, setWeeklyRecords, setCurrentRecord, setFormulas, setMonthlyReports, setChurchInfo };
+    const appData = { members, categories, weeklyRecords, currentRecord, formulas, monthlyReports, churchInfo, comisionados };
+    const appHandlers = { setMembers, setCategories, setWeeklyRecords, setCurrentRecord, setFormulas, setMonthlyReports, setChurchInfo, setComisionados };
 
     if (appVersion === 'completo') {
         return <MainApp 

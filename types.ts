@@ -10,8 +10,16 @@ export interface Offering {
 }
 
 export interface Member {
-  id:string;
+  id: string;
   name: string;
+  isActive: boolean;
+}
+
+export interface Comisionado {
+  id: string;
+  created_at: string;
+  nombre: string;
+  cargo: string;
 }
 
 export interface Formulas {
