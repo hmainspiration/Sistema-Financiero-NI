@@ -1,5 +1,5 @@
 {
-  "name": "Sistema de Finanzas",
+  "name": "Sistema de Finanzas 2.0",
   "description": "A comprehensive web application for managing church finances, including members, donations, weekly records, and monthly reports, with data persistence and Supabase integration.",
   "requestFramePermissions": []
 }
